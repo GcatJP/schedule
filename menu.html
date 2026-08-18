@@ -6,7 +6,19 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
     />
-    <title>Day</title>
+    <!-- iOS Home Screen behaviour -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Adventure Island" />
+    <meta name="theme-color" content="#ffcc00" />
+
+    <!-- App icon -->
+    <link rel="apple-touch-icon" href="cat.png" />
+
+    <title>Schedule</title>
     <link rel="preconnect" href="https://fonts.googleapis.com/" />
     <link
       href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap"
@@ -16,11 +28,11 @@
       :root {
         --bg: #f7f7f5;
         --radius: 20px;
-        --tue: #e8b100;
-        --wed: #2b7a9e;
-        --thu: #3f9d5c;
-        --fri: #7c5cc4;
-        --ink: #2a2a26;
+        --today: #2b7a9e;
+        --day: #e8b100;
+        --week: #d1495b;
+        --events: #c96a1f;
+        --payments: #7c5cc4;
       }
       * {
         box-sizing: border-box;
@@ -41,36 +53,19 @@
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
       }
-      header {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 14px 16px;
-      }
-      header a.back {
-        text-decoration: none;
-        color: var(--ink);
-        font-size: 28px;
-        line-height: 1;
-      }
-      header h1 {
-        margin: 0;
-        font-weight: normal;
-        font-size: clamp(24px, 5vmin, 34px);
-        color: var(--ink);
-      }
       nav.menu {
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: repeat(4, 1fr);
+        grid-template-rows: repeat(5, 1fr);
         gap: 14px;
         width: 100%;
-        min-height: calc(100dvh - 70px);
-        padding: 0 18px 18px 18px;
+        min-height: 100dvh;
+        padding: 18px;
       }
+      /* iPad landscape: lay the five buttons out in a single row */
       @media (orientation: landscape) and (min-width: 820px) {
         nav.menu {
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(5, 1fr);
           grid-template-rows: 1fr;
         }
       }
@@ -92,31 +87,31 @@
         transform: translateY(2px);
         box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
       }
-      .btn-tue {
-        background: var(--tue);
+      .btn-today {
+        background: var(--today);
+      }
+      .btn-day {
+        background: var(--day);
         color: #2a2a26;
       }
-      .btn-wed {
-        background: var(--wed);
+      .btn-week {
+        background: var(--week);
       }
-      .btn-thu {
-        background: var(--thu);
+      .btn-events {
+        background: var(--events);
       }
-      .btn-fri {
-        background: var(--fri);
+      .btn-payments {
+        background: var(--payments);
       }
     </style>
   </head>
   <body>
-    <header>
-      <a class="back" href="menu.html">‹</a>
-      <h1>Day</h1>
-    </header>
     <nav class="menu">
-      <a class="btn btn-tue" href="day-tue.html">Tuesday</a>
-      <a class="btn btn-wed" href="day-wed.html">Wednesday</a>
-      <a class="btn btn-thu" href="day-thu.html">Thursday</a>
-      <a class="btn btn-fri" href="day-fri.html">Friday</a>
+      <a class="btn btn-today" href="index.html">Today</a>
+      <a class="btn btn-day" href="day.html">Day</a>
+      <a class="btn btn-week" href="week.html">Week</a>
+      <a class="btn btn-events" href="events.html">Events</a>
+      <a class="btn btn-payments" href="payments.html">Payments</a>
     </nav>
   </body>
 </html>

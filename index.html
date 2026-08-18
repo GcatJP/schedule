@@ -6,19 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
     />
-    <!-- iOS Home Screen behaviour -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
-    <meta name="apple-mobile-web-app-title" content="Adventure Island" />
-    <meta name="theme-color" content="#ffcc00" />
-
-    <!-- App icon -->
-    <link rel="apple-touch-icon" href="cat.png" />
-
-    <title>Schedule</title>
+    <title>Today</title>
     <link rel="preconnect" href="https://fonts.googleapis.com/" />
     <link
       href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap"
@@ -29,10 +17,7 @@
         --bg: #f7f7f5;
         --radius: 20px;
         --today: #2b7a9e;
-        --day: #e8b100;
-        --week: #d1495b;
-        --events: #c96a1f;
-        --payments: #7c5cc4;
+        --ink: #2a2a26;
       }
       * {
         box-sizing: border-box;
@@ -48,70 +33,66 @@
       body {
         min-height: 100dvh;
         font-family: "Patrick Hand", cursive;
+        color: var(--ink);
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        text-align: center;
+        padding-left: 24px;
+        padding-right: 24px;
       }
-      nav.menu {
-        display: grid;
-        grid-template-columns: 1fr;
-        grid-template-rows: repeat(5, 1fr);
-        gap: 14px;
-        width: 100%;
-        min-height: 100dvh;
-        padding: 18px;
-      }
-      /* iPad landscape: lay the five buttons out in a single row */
-      @media (orientation: landscape) and (min-width: 820px) {
-        nav.menu {
-          grid-template-columns: repeat(5, 1fr);
-          grid-template-rows: 1fr;
-        }
+      p {
+        font-size: clamp(24px, 5vmin, 34px);
+        margin: 0;
       }
       a.btn {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: var(--radius);
         text-decoration: none;
         color: #ffffff;
-        font-size: clamp(28px, 6vmin, 46px);
-        letter-spacing: 0.5px;
+        background: var(--today);
+        font-size: clamp(22px, 5vmin, 32px);
+        padding: 16px 32px;
         box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
-        transition:
-          transform 0.1s ease,
-          box-shadow 0.1s ease;
       }
       a.btn:active {
         transform: translateY(2px);
         box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
       }
-      .btn-today {
-        background: var(--today);
-      }
-      .btn-day {
-        background: var(--day);
-        color: #2a2a26;
-      }
-      .btn-week {
-        background: var(--week);
-      }
-      .btn-events {
-        background: var(--events);
-      }
-      .btn-payments {
-        background: var(--payments);
-      }
     </style>
   </head>
   <body>
-    <nav class="menu">
-      <a class="btn btn-today" href="today.html">Today</a>
-      <a class="btn btn-day" href="day.html">Day</a>
-      <a class="btn btn-week" href="week.html">Week</a>
-      <a class="btn btn-events" href="events.html">Events</a>
-      <a class="btn btn-payments" href="payments.html">Payments</a>
-    </nav>
+    <p id="message">Checking the day…</p>
+    <a class="btn" href="menu.html" id="fallbackLink" style="display: none"
+      >Back to Menu</a
+    >
+
+    <script>
+      // 0 = Sunday, 1 = Monday, 2 = Tuesday, ... 6 = Saturday
+      const dayMap = {
+        2: "day-tue.html",
+        3: "day-wed.html",
+        4: "day-thu.html",
+        5: "day-fri.html",
+      };
+
+      const todayIndex = new Date().getDay();
+      const target = dayMap[todayIndex];
+
+      if (target) {
+        window.location.replace(target);
+      } else {
+        document.getElementById("message").textContent = "No class today.";
+        document.getElementById("fallbackLink").style.display = "inline-flex";
+      }
+    </script>
   </body>
 </html>
