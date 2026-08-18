@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <title>Payments</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com/" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --radius: 20px;
+        --today: #2b7a9e;
+        --day: #e8b100;
+        --week: #d1495b;
+        --events: #c96a1f;
+        --payments: #7c5cc4;
+
+        /* day-of-week colors for payments */
+        --tue: #e8b100; /* yellow */
+        --wed: #2b7a9e; /* blue */
+        --thu: #3f9d5c; /* green */
+        --fri: #7c5cc4; /* purple */
+
+        --ink: #2a2a26;
+        --line: #d9d7d1;
+        --cellsize: 46px;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg);
+      }
+      body {
+        min-height: 100dvh;
+        font-family: "Patrick Hand", cursive;
+        color: var(--ink);
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+      }
+      header a.back {
+        text-decoration: none;
+        color: var(--ink);
+        font-size: 28px;
+        line-height: 1;
+      }
+      header h1 {
+        margin: 0;
+        font-weight: normal;
+        font-size: clamp(24px, 5vmin, 34px);
+        color: var(--payments);
+      }
+      header .year {
+        margin-left: auto;
+        font-size: 20px;
+        opacity: 0.6;
+      }
+
+      .table-wrap {
+        flex: 1;
+        overflow: auto;
+        padding: 0 12px 100px 12px;
+      }
+
+      table {
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+
+      thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        z-index: 2;
+        padding: 6px 4px;
+        font-weight: normal;
+        font-size: 18px;
+        text-align: center;
+        min-width: var(--cellsize);
+      }
+
+      thead th.name-col-header {
+        position: sticky;
+        left: 0;
+        top: 0;
+        z-index: 3;
+        text-align: left;
+        min-width: 140px;
+        background: var(--bg);
+      }
+
+      tbody td.name-cell {
+        position: sticky;
+        left: 0;
+        background: var(--bg);
+        z-index: 1;
+        padding: 6px 10px 6px 6px;
+        font-size: 20px;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--line);
+        box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.15);
+      }
+
+      .name-inner {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 4px;
+        border-radius: 12px;
+      }
+      .name-inner.pressed {
+        background: rgba(0, 0, 0, 0.06);
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      td.cell-wrap {
+        border-bottom: 1px solid var(--line);
+        text-align: center;
+        padding: 4px;
+      }
+
+      .pay-cell {
+        width: var(--cellsize);
+        height: var(--cellsize);
+        border-radius: 10px;
+        border: 2px solid var(--line);
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: #fff;
+        touch-action: manipulation;
+        transition: transform 0.08s ease;
+      }
+      .pay-cell.pressed {
+        transform: scale(0.92);
+      }
+      .pay-cell.paid {
+        border-color: transparent;
+      }
+
+      /* floating add-student button */
+      .fab {
+        position: fixed;
+        right: 20px;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: var(--payments);
+        color: #fff;
+        border: none;
+        font-size: 30px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+      }
+      .fab:active {
+        transform: scale(0.95);
+      }
+
+      /* overlay + sheets */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+        z-index: 10;
+      }
+      .overlay.show {
+        display: flex;
+      }
+      .sheet {
+        width: 100%;
+        max-width: 480px;
+        background: var(--bg);
+        border-radius: 20px 20px 0 0;
+        padding: 16px 16px calc(16px + env(safe-area-inset-bottom)) 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .sheet h2 {
+        margin: 0 0 4px 0;
+        font-weight: normal;
+        font-size: 24px;
+        text-align: center;
+      }
+      .sheet button.action {
+        padding: 14px;
+        border-radius: 14px;
+        border: none;
+        font-family: inherit;
+        font-size: 20px;
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid var(--line);
+      }
+      .sheet button.action.danger {
+        color: var(--week);
+      }
+      .sheet button.action.cancel {
+        color: #888;
+      }
+      .sheet button.action:active {
+        transform: scale(0.98);
+      }
+
+      /* add student form */
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field label {
+        font-size: 16px;
+        opacity: 0.7;
+      }
+      .field input[type="text"] {
+        font-family: inherit;
+        font-size: 20px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+      .day-picker {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .day-picker button {
+        padding: 12px 0;
+        border-radius: 12px;
+        border: 2px solid var(--line);
+        background: #fff;
+        font-family: inherit;
+        font-size: 18px;
+        color: #fff;
+      }
+      .day-picker button.selected {
+        border-color: #000;
+      }
+
+      /* toast */
+      #toast {
+        position: fixed;
+        left: 50%;
+        bottom: calc(90px + env(safe-area-inset-bottom));
+        transform: translateX(-50%) translateY(20px);
+        background: var(--ink);
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 14px;
+        font-size: 18px;
+        max-width: 86vw;
+        text-align: center;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.15s ease,
+          transform 0.15s ease;
+        z-index: 20;
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      #status {
+        position: fixed;
+        top: calc(10px + env(safe-area-inset-top));
+        right: 14px;
+        font-size: 14px;
+        opacity: 0.5;
+        z-index: 20;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="back" href="index.html">‹</a>
+      <h1>Payments</h1>
+      <span class="year" id="yearLabel"></span>
+    </header>
+
+    <div id="status"></div>
+
+    <div class="table-wrap">
+      <table id="paymentsTable">
+        <thead>
+          <tr id="headRow">
+            <th class="name-col-header">Student</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <button class="fab" id="addBtn">+</button>
+
+    <!-- name action sheet -->
+    <div class="overlay" id="nameOverlay">
+      <div class="sheet">
+        <h2 id="nameSheetTitle">Student</h2>
+        <button class="action" id="moveUpBtn">Move Up</button>
+        <button class="action" id="moveDownBtn">Move Down</button>
+        <button class="action danger" id="deleteBtn">Delete</button>
+        <button class="action cancel" id="nameCancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- add student sheet -->
+    <div class="overlay" id="addOverlay">
+      <div class="sheet">
+        <h2>Add Student</h2>
+        <div class="field">
+          <label for="newNameInput">Name</label>
+          <input type="text" id="newNameInput" placeholder="Student name" />
+        </div>
+        <div class="field">
+          <label>Class Day</label>
+          <div class="day-picker" id="dayPicker">
+            <button type="button" data-day="tue" style="background: var(--tue)">
+              Tue
+            </button>
+            <button type="button" data-day="wed" style="background: var(--wed)">
+              Wed
+            </button>
+            <button type="button" data-day="thu" style="background: var(--thu)">
+              Thu
+            </button>
+            <button type="button" data-day="fri" style="background: var(--fri)">
+              Fri
+            </button>
+          </div>
+        </div>
+        <button
+          class="action"
+          id="confirmAddBtn"
+          style="background: var(--payments); color: #fff; border: none"
+        >
+          Add Student
+        </button>
+        <button class="action cancel" id="addCancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+      import {
+        getFirestore,
+        doc,
+        onSnapshot,
+        setDoc,
+      } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+      // ---- PASTE YOUR EXISTING FIREBASE CONFIG HERE ----
+      // Reuse the same config/project from your schedule page so
+      // everything stays in one Firestore project.
+      const firebaseConfig = {
+        apiKey: "AIzaSyAegz9XGRoiPIJZW_Iw9IrXXMYx_-EDn9E",
+        authDomain: "schedule-69a31.firebaseapp.com",
+        projectId: "schedule-69a31",
+        storageBucket: "schedule-69a31.firebasestorage.app",
+        messagingSenderId: "211061390173",
+        appId: "1:211061390173:web:158b55a901284e5b3e46b4",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const docRef = doc(db, "schedules", "main");
+
+      // ---- constants ----
+      const DAY_COLORS = {
+        tue: "var(--tue)",
+        wed: "var(--wed)",
+        thu: "var(--thu)",
+        fri: "var(--fri)",
+      };
+      const DAY_LABELS = { tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri" };
+      const MONTHS = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const YEAR = new Date().getFullYear();
+      document.getElementById("yearLabel").textContent = YEAR;
+
+      const LONG_PRESS_MS = 500;
+      const MOVE_TOLERANCE = 10;
+
+      let students = [];
+      let activeStudentId = null; // for the name action sheet
+
+      const statusEl = document.getElementById("status");
+      const tableBody = document.getElementById("tableBody");
+      const headRow = document.getElementById("headRow");
+
+      // ---- build month header once ----
+      MONTHS.forEach((m) => {
+        const th = document.createElement("th");
+        th.textContent = m;
+        headRow.appendChild(th);
+      });
+
+      // ---- Firestore sync ----
+      onSnapshot(
+        docRef,
+        (snap) => {
+          const data = snap.data();
+          students = (data && data.students) || [];
+          statusEl.textContent = "";
+          render();
+        },
+        (err) => {
+          console.error(err);
+          statusEl.textContent = "offline";
+        },
+      );
+
+      async function saveStudents(newStudents) {
+        students = newStudents;
+        render(); // optimistic local render
+        try {
+          await setDoc(docRef, { students: newStudents }, { merge: true });
+        } catch (e) {
+          console.error(e);
+          statusEl.textContent = "sync error";
+        }
+      }
+
+      function newId() {
+        return (
+          (crypto.randomUUID && crypto.randomUUID()) ||
+          `${Date.now()}-${Math.random().toString(16).slice(2)}`
+        );
+      }
+
+      // ---- render ----
+      function render() {
+        tableBody.innerHTML = "";
+        students.forEach((s) => {
+          const tr = document.createElement("tr");
+
+          // name cell
+          const nameTd = document.createElement("td");
+          nameTd.className = "name-cell";
+          const nameInner = document.createElement("div");
+          nameInner.className = "name-inner";
+          const dot = document.createElement("span");
+          dot.className = "dot";
+          dot.style.background = DAY_COLORS[s.day] || "#ccc";
+          const nameText = document.createElement("span");
+          nameText.textContent = s.name;
+          nameInner.appendChild(dot);
+          nameInner.appendChild(nameText);
+          nameTd.appendChild(nameInner);
+          attachPress(nameInner, {
+            onLongPress: () => openNameSheet(s.id),
+          });
+          tr.appendChild(nameTd);
+
+          // month cells
+          MONTHS.forEach((_, monthIdx) => {
+            const td = document.createElement("td");
+            td.className = "cell-wrap";
+            const cell = document.createElement("div");
+            cell.className = "pay-cell";
+            const key = `${YEAR}-${monthIdx}`;
+            const paidIso = s.payments && s.payments[key];
+            if (paidIso) {
+              cell.classList.add("paid");
+              cell.style.background = DAY_COLORS[s.day] || "#999";
+              cell.textContent = "✓";
+            }
+            attachPress(cell, {
+              onTap: () => togglePayment(s.id, key),
+              onLongPress: () => showPaymentDate(s.id, key, monthIdx),
+            });
+            td.appendChild(cell);
+            tr.appendChild(td);
+          });
+
+          tableBody.appendChild(tr);
+        });
+      }
+
+      // ---- payment actions ----
+      function togglePayment(studentId, key) {
+        const list = students.map((s) => {
+          if (s.id !== studentId) return s;
+          const payments = { ...(s.payments || {}) };
+          if (payments[key]) {
+            delete payments[key];
+          } else {
+            payments[key] = new Date().toISOString();
+          }
+          return { ...s, payments };
+        });
+        saveStudents(list);
+      }
+
+      function showPaymentDate(studentId, key, monthIdx) {
+        const s = students.find((s) => s.id === studentId);
+        const iso = s && s.payments && s.payments[key];
+        if (!iso) return;
+        const d = new Date(iso);
+        const formatted = d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+        toast(`${s.name} — ${MONTHS[monthIdx]}: paid ${formatted}`);
+      }
+
+      // ---- name action sheet ----
+      const nameOverlay = document.getElementById("nameOverlay");
+      const nameSheetTitle = document.getElementById("nameSheetTitle");
+
+      function openNameSheet(studentId) {
+        activeStudentId = studentId;
+        const s = students.find((s) => s.id === studentId);
+        nameSheetTitle.textContent = s ? s.name : "Student";
+        nameOverlay.classList.add("show");
+      }
+      function closeNameSheet() {
+        nameOverlay.classList.remove("show");
+        activeStudentId = null;
+      }
+      document
+        .getElementById("nameCancelBtn")
+        .addEventListener("click", closeNameSheet);
+      nameOverlay.addEventListener("click", (e) => {
+        if (e.target === nameOverlay) closeNameSheet();
+      });
+
+      document.getElementById("moveUpBtn").addEventListener("click", () => {
+        const i = students.findIndex((s) => s.id === activeStudentId);
+        if (i > 0) {
+          const list = [...students];
+          [list[i - 1], list[i]] = [list[i], list[i - 1]];
+          saveStudents(list);
+        }
+        closeNameSheet();
+      });
+      document.getElementById("moveDownBtn").addEventListener("click", () => {
+        const i = students.findIndex((s) => s.id === activeStudentId);
+        if (i > -1 && i < students.length - 1) {
+          const list = [...students];
+          [list[i + 1], list[i]] = [list[i], list[i + 1]];
+          saveStudents(list);
+        }
+        closeNameSheet();
+      });
+      document.getElementById("deleteBtn").addEventListener("click", () => {
+        const s = students.find((s) => s.id === activeStudentId);
+        if (s && confirm(`Delete ${s.name}?`)) {
+          saveStudents(students.filter((st) => st.id !== activeStudentId));
+        }
+        closeNameSheet();
+      });
+
+      // ---- add student sheet ----
+      const addOverlay = document.getElementById("addOverlay");
+      const newNameInput = document.getElementById("newNameInput");
+      const dayPicker = document.getElementById("dayPicker");
+      let selectedDay = null;
+
+      document.getElementById("addBtn").addEventListener("click", () => {
+        newNameInput.value = "";
+        selectedDay = null;
+        [...dayPicker.children].forEach((b) => b.classList.remove("selected"));
+        addOverlay.classList.add("show");
+        setTimeout(() => newNameInput.focus(), 50);
+      });
+      document.getElementById("addCancelBtn").addEventListener("click", () => {
+        addOverlay.classList.remove("show");
+      });
+      addOverlay.addEventListener("click", (e) => {
+        if (e.target === addOverlay) addOverlay.classList.remove("show");
+      });
+      dayPicker.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-day]");
+        if (!btn) return;
+        selectedDay = btn.dataset.day;
+        [...dayPicker.children].forEach((b) => b.classList.remove("selected"));
+        btn.classList.add("selected");
+      });
+      document.getElementById("confirmAddBtn").addEventListener("click", () => {
+        const name = newNameInput.value.trim();
+        if (!name) {
+          toast("Enter a name");
+          return;
+        }
+        if (!selectedDay) {
+          toast("Pick a class day");
+          return;
+        }
+        const newStudent = {
+          id: newId(),
+          name,
+          day: selectedDay,
+          payments: {},
+        };
+        saveStudents([...students, newStudent]);
+        addOverlay.classList.remove("show");
+      });
+
+      // ---- toast ----
+      let toastTimer = null;
+      function toast(msg) {
+        const el = document.getElementById("toast") || createToastEl();
+        el.textContent = msg;
+        el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), 2500);
+      }
+      function createToastEl() {
+        const el = document.createElement("div");
+        el.id = "toast";
+        document.body.appendChild(el);
+        return el;
+      }
+
+      // ---- unified press handler (pointer events: works for touch + mouse) ----
+      function attachPress(el, { onTap, onLongPress, delay = LONG_PRESS_MS }) {
+        let timer = null;
+        let longPressed = false;
+        let startX = 0;
+        let startY = 0;
+
+        function start(e) {
+          longPressed = false;
+          startX = e.clientX;
+          startY = e.clientY;
+          el.classList.add("pressed");
+          timer = setTimeout(() => {
+            longPressed = true;
+            el.classList.remove("pressed");
+            if (navigator.vibrate) navigator.vibrate(15);
+            onLongPress && onLongPress();
+          }, delay);
+        }
+        function move(e) {
+          if (
+            Math.abs(e.clientX - startX) > MOVE_TOLERANCE ||
+            Math.abs(e.clientY - startY) > MOVE_TOLERANCE
+          ) {
+            clearTimeout(timer);
+            el.classList.remove("pressed");
+          }
+        }
+        function end() {
+          clearTimeout(timer);
+          el.classList.remove("pressed");
+          if (!longPressed && onTap) onTap();
+        }
+        function cancel() {
+          clearTimeout(timer);
+          el.classList.remove("pressed");
+        }
+
+        el.addEventListener("pointerdown", start);
+        el.addEventListener("pointermove", move);
+        el.addEventListener("pointerup", end);
+        el.addEventListener("pointercancel", cancel);
+        el.addEventListener("pointerleave", cancel);
+        el.addEventListener("contextmenu", (e) => e.preventDefault());
+      }
+    </script>
+  </body>
+</html>
