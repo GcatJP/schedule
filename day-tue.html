@@ -58,9 +58,7 @@
       }
       header a.back {
         text-decoration: none;
-        color: var(--ink);
-        font-size: 28px;
-        line-height: 1;
+        display: inline-block;
       }
       header h1 {
         margin: 0;
@@ -140,8 +138,8 @@
           font-size: 12px;
         }
         .roster {
-          padding: 5px 8px 6px 8px;
-          gap: 4px;
+          padding: 6px 8px 10px 8px;
+          gap: 8px 5px;
         }
         .student-chip {
           padding: 3px 9px;
@@ -401,8 +399,9 @@
   </head>
   <body>
     <header>
-      <a class="back" href="day.html">‹</a>
-      <h1>Tuesday</h1>
+      <a class="back" href="menu.html">
+        <h1>Tuesday</h1>
+      </a>
     </header>
 
     <div id="status"></div>
