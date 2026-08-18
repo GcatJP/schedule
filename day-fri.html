@@ -54,13 +54,11 @@
         display: flex;
         align-items: center;
         gap: 14px;
-        padding: 14px 16px;
+        padding: 8px 14px;
       }
       header a.back {
         text-decoration: none;
-        color: var(--ink);
-        font-size: 28px;
-        line-height: 1;
+        display: inline-block;
       }
       header h1 {
         margin: 0;
@@ -72,10 +70,10 @@
       main {
         flex: 1;
         overflow-y: auto;
-        padding: 0 14px 110px 14px;
+        padding: 0 12px 12px 12px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 8px;
       }
 
       .empty-hint {
@@ -87,15 +85,15 @@
 
       .class-card {
         background: #fff;
-        border-radius: var(--radius);
+        border-radius: 14px;
         box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
         overflow: hidden;
       }
       .class-head {
         display: flex;
         align-items: baseline;
-        gap: 10px;
-        padding: 14px 16px;
+        gap: 8px;
+        padding: 8px 14px;
         background: var(--daycolor);
         color: #fff;
       }
@@ -103,67 +101,124 @@
         filter: brightness(0.92);
       }
       .class-head .time {
-        font-size: 22px;
+        font-size: 18px;
         font-weight: bold;
       }
       .class-head .label {
-        font-size: 20px;
+        font-size: 16px;
         opacity: 0.95;
+      }
+      .class-head .note {
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--st-special);
       }
 
       .roster {
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 12px 10px 12px;
       }
-      .student-row {
-        display: flex;
+      .student-chip {
+        display: inline-flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px 16px;
-        border-top: 1px solid var(--line);
-        font-size: 22px;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        border: 2px solid var(--line);
+        background: #fff;
+        font-size: 16px;
+        white-space: nowrap;
+        line-height: 1.2;
       }
-      .student-row.pressed {
-        background: rgba(0, 0, 0, 0.04);
+      .student-chip.pressed {
+        background: rgba(0, 0, 0, 0.06);
       }
       .status-dot {
-        width: 12px;
-        height: 12px;
+        width: 9px;
+        height: 9px;
         border-radius: 50%;
         flex-shrink: 0;
       }
-      .student-row.st-present .status-dot {
+      .student-chip.st-present .status-dot {
         background: transparent;
         border: 2px solid var(--line);
       }
-      .student-row.st-absent .status-dot {
+      .student-chip.st-absent .status-dot {
         background: var(--st-absent);
       }
-      .student-row.st-online .status-dot {
+      .student-chip.st-online .status-dot {
         background: var(--st-online);
       }
-      .student-row.st-special .status-dot {
+      .student-chip.st-special .status-dot {
         background: var(--st-special);
       }
-      .student-row.st-present .student-name {
+      .student-chip.st-present .student-name {
         color: var(--st-present);
       }
-      .student-row.st-absent .student-name {
+      .student-chip.st-absent {
+        border-color: var(--st-absent);
+      }
+      .student-chip.st-absent .student-name {
         color: var(--st-absent);
       }
-      .student-row.st-online .student-name {
+      .student-chip.st-online {
+        border-color: var(--st-online);
+      }
+      .student-chip.st-online .student-name {
         color: var(--st-online);
       }
-      .student-row.st-special .student-name {
+      .student-chip.st-special {
+        border-color: var(--st-special);
+      }
+      .student-chip.st-special .student-name {
         color: var(--st-special);
       }
 
       .no-students {
-        padding: 14px 16px;
+        padding: 8px 14px 12px 14px;
         opacity: 0.5;
-        font-size: 18px;
+        font-size: 15px;
       }
 
+      @media (max-width: 500px) and (orientation: portrait) {
+        header {
+          padding: 4px 12px;
+        }
+        header h1 {
+          font-size: 22px;
+        }
+        main {
+          gap: 6px;
+          padding: 0 10px calc(20px + env(safe-area-inset-bottom)) 10px;
+        }
+        .class-head {
+          padding: 4px 10px;
+          gap: 5px;
+        }
+        .class-head .time {
+          font-size: 14px;
+        }
+        .class-head .label {
+          font-size: 12px;
+        }
+        .class-head .note {
+          font-size: 12px;
+        }
+        .roster {
+          padding: 6px 8px 10px 8px;
+          gap: 8px 5px;
+        }
+        .student-chip {
+          padding: 3px 9px;
+          font-size: 13px;
+        }
+        .status-dot {
+          width: 8px;
+          height: 8px;
+        }
+      }
       /* floating add-class button */
       .fab {
         position: fixed;
@@ -318,16 +373,45 @@
         opacity: 0.5;
         z-index: 20;
       }
+      #legend {
+        position: fixed;
+        top: calc(10px + env(safe-area-inset-top));
+        right: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        z-index: 20;
+        pointer-events: none;
+      }
+      #legend span.st-present {
+        color: var(--st-present);
+      }
+      #legend span.st-absent {
+        color: var(--st-absent);
+      }
+      #legend span.st-online {
+        color: var(--st-online);
+      }
+      #legend span.st-special {
+        color: var(--st-special);
+      }
     </style>
   </head>
   <body>
     <header>
-      <a class="back" href="day.html">‹</a>
-      <h1>Friday</h1>
+      <a class="back" href="menu.html">
+        <h1>Friday</h1>
+      </a>
     </header>
 
     <div id="status"></div>
-
+    <div id="legend">
+      <span class="st-present">Present</span>
+      <span class="st-absent">Absent</span>
+      <span class="st-online">Online</span>
+      <span class="st-special">Special</span>
+    </div>
     <main id="classesContainer">
       <div class="empty-hint" id="emptyHint">
         No classes yet. Tap + to add one.
@@ -340,8 +424,9 @@
     <div class="overlay" id="classOverlay">
       <div class="sheet">
         <h2 id="classSheetTitle">Class</h2>
+        <button class="action" id="editTimeBtn">Notes</button>
         <button class="action" id="editRosterBtn">Edit Roster</button>
-        <button class="action" id="editTimeBtn">Edit Time / Label</button>
+
         <button class="action danger" id="deleteClassBtn">Delete Class</button>
         <button class="action cancel" id="classCancelBtn">Cancel</button>
       </div>
@@ -353,8 +438,8 @@
         <h2 id="statusSheetTitle">Student</h2>
         <button class="action st-present" id="setPresentBtn">Present</button>
         <button class="action st-absent" id="setAbsentBtn">Absent</button>
-        <button class="action st-online" id="setOnlineBtn">Online</button>
         <button class="action st-special" id="setSpecialBtn">Special</button>
+        <button class="action st-online" id="setOnlineBtn">Online</button>
         <button class="action cancel" id="statusCancelBtn">Cancel</button>
       </div>
     </div>
@@ -373,6 +458,14 @@
             type="text"
             id="classLabelInput"
             placeholder="e.g. Adventure Island 2"
+          />
+        </div>
+        <div class="field">
+          <label for="classNoteInput">Note (optional, shown in red)</label>
+          <input
+            type="text"
+            id="classNoteInput"
+            placeholder="e.g. Room change this week"
           />
         </div>
         <button
@@ -444,6 +537,7 @@
           allStudents = (data && data.students) || [];
           allClasses = (data && data.classes) || [];
           statusEl.textContent = "";
+          maybeResetForNewDay();
           render();
         },
         (err) => {
@@ -482,7 +576,31 @@
         const s = allStudents.find((s) => s.id === id);
         return s ? s.name : "(removed)";
       }
+      function todayStr() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
 
+      function maybeResetForNewDay() {
+        const today = todayStr();
+        let changed = false;
+        const updated = allClasses.map((c) => {
+          if (c.day !== DAY_KEY) return c;
+          if (c.statusDate === today) return c;
+          changed = true;
+          return { ...c, statuses: {}, statusDate: today };
+        });
+        if (changed) {
+          allClasses = updated;
+          setDoc(docRef, { classes: updated }, { merge: true }).catch((e) => {
+            console.error(e);
+            statusEl.textContent = "sync error";
+          });
+        }
+      }
       // ---- render ----
       function render() {
         const classes = dayClasses();
@@ -507,6 +625,12 @@
             labelSpan.textContent = c.label;
             head.appendChild(labelSpan);
           }
+          if (c.note) {
+            const noteSpan = document.createElement("span");
+            noteSpan.className = "note";
+            noteSpan.textContent = c.note;
+            head.appendChild(noteSpan);
+          }
           attachPress(head, {
             onLongPress: () => openClassSheet(c.id),
           });
@@ -524,19 +648,19 @@
           } else {
             ids.forEach((sid) => {
               const status = (c.statuses && c.statuses[sid]) || "present";
-              const row = document.createElement("div");
-              row.className = `student-row st-${status}`;
+              const chip = document.createElement("div");
+              chip.className = `student-chip st-${status}`;
               const dot = document.createElement("span");
               dot.className = "status-dot";
               const name = document.createElement("span");
               name.className = "student-name";
               name.textContent = studentName(sid);
-              row.appendChild(dot);
-              row.appendChild(name);
-              attachPress(row, {
+              chip.appendChild(dot);
+              chip.appendChild(name);
+              attachPress(chip, {
                 onTap: () => openStatusSheet(c.id, sid),
               });
-              roster.appendChild(row);
+              roster.appendChild(chip);
             });
           }
           card.appendChild(roster);
@@ -583,6 +707,7 @@
       const classFormTitle = document.getElementById("classFormTitle");
       const classTimeInput = document.getElementById("classTimeInput");
       const classLabelInput = document.getElementById("classLabelInput");
+      const classNoteInput = document.getElementById("classNoteInput");
       let formMode = "add"; // "add" | "edit"
 
       document.getElementById("addClassBtn").addEventListener("click", () => {
@@ -590,15 +715,17 @@
         classFormTitle.textContent = "Add Class";
         classTimeInput.value = "";
         classLabelInput.value = "";
+        classNoteInput.value = "";
         classFormOverlay.classList.add("show");
         setTimeout(() => classTimeInput.focus(), 50);
       });
       document.getElementById("editTimeBtn").addEventListener("click", () => {
         formMode = "edit";
         const c = allClasses.find((c) => c.id === activeClassId);
-        classFormTitle.textContent = "Edit Time / Label";
+        classFormTitle.textContent = "Edit Time / Label / Note";
         classTimeInput.value = c ? c.time || "" : "";
         classLabelInput.value = c ? c.label || "" : "";
+        classNoteInput.value = c ? c.note || "" : "";
         classOverlay.classList.remove("show");
         classFormOverlay.classList.add("show");
       });
@@ -616,6 +743,7 @@
         .addEventListener("click", () => {
           const time = classTimeInput.value.trim();
           const label = classLabelInput.value.trim();
+          const note = classNoteInput.value.trim();
           if (!time) {
             toast("Enter a time");
             return;
@@ -626,13 +754,14 @@
               day: DAY_KEY,
               time,
               label,
+              note,
               studentIds: [],
               statuses: {},
             };
             saveClasses([...allClasses, newClass]);
           } else {
             const list = allClasses.map((c) =>
-              c.id === activeClassId ? { ...c, time, label } : c,
+              c.id === activeClassId ? { ...c, time, label, note } : c,
             );
             saveClasses(list);
           }

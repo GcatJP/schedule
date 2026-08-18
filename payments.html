@@ -65,9 +65,7 @@
       }
       header a.back {
         text-decoration: none;
-        color: var(--ink);
-        font-size: 28px;
-        line-height: 1;
+        display: inline-block;
       }
       header h1 {
         margin: 0;
@@ -314,11 +312,11 @@
   </head>
   <body>
     <header>
-      <a class="back" href="index.html">‹</a>
-      <h1>Payments</h1>
+      <a class="back" href="menu.html">
+        <h1>Payments</h1>
+      </a>
       <span class="year" id="yearLabel"></span>
     </header>
-
     <div id="status"></div>
 
     <div class="table-wrap">

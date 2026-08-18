@@ -191,7 +191,7 @@
         }
         main {
           gap: 6px;
-          padding: 0 10px calc(50px + env(safe-area-inset-bottom)) 10px;
+          padding: 0 10px calc(20px + env(safe-area-inset-bottom)) 10px;
         }
         .class-head {
           padding: 4px 10px;
@@ -424,10 +424,9 @@
     <div class="overlay" id="classOverlay">
       <div class="sheet">
         <h2 id="classSheetTitle">Class</h2>
+        <button class="action" id="editTimeBtn">Notes</button>
         <button class="action" id="editRosterBtn">Edit Roster</button>
-        <button class="action" id="editTimeBtn">
-          Edit Time / Label / Note
-        </button>
+
         <button class="action danger" id="deleteClassBtn">Delete Class</button>
         <button class="action cancel" id="classCancelBtn">Cancel</button>
       </div>
@@ -439,8 +438,8 @@
         <h2 id="statusSheetTitle">Student</h2>
         <button class="action st-present" id="setPresentBtn">Present</button>
         <button class="action st-absent" id="setAbsentBtn">Absent</button>
-        <button class="action st-online" id="setOnlineBtn">Online</button>
         <button class="action st-special" id="setSpecialBtn">Special</button>
+        <button class="action st-online" id="setOnlineBtn">Online</button>
         <button class="action cancel" id="statusCancelBtn">Cancel</button>
       </div>
     </div>
@@ -538,6 +537,7 @@
           allStudents = (data && data.students) || [];
           allClasses = (data && data.classes) || [];
           statusEl.textContent = "";
+          maybeResetForNewDay();
           render();
         },
         (err) => {
@@ -576,7 +576,31 @@
         const s = allStudents.find((s) => s.id === id);
         return s ? s.name : "(removed)";
       }
+      function todayStr() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
 
+      function maybeResetForNewDay() {
+        const today = todayStr();
+        let changed = false;
+        const updated = allClasses.map((c) => {
+          if (c.day !== DAY_KEY) return c;
+          if (c.statusDate === today) return c;
+          changed = true;
+          return { ...c, statuses: {}, statusDate: today };
+        });
+        if (changed) {
+          allClasses = updated;
+          setDoc(docRef, { classes: updated }, { merge: true }).catch((e) => {
+            console.error(e);
+            statusEl.textContent = "sync error";
+          });
+        }
+      }
       // ---- render ----
       function render() {
         const classes = dayClasses();
