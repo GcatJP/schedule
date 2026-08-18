@@ -116,26 +116,40 @@
         color: var(--st-special);
       }
       @media (max-width: 500px) and (orientation: portrait) {
-        .class-head {
-          padding: 5px 12px;
+        header {
+          padding: 4px 12px;
+        }
+        header h1 {
+          font-size: 22px;
+        }
+        main {
           gap: 6px;
+          padding: 0 10px calc(90px + env(safe-area-inset-bottom)) 10px;
         }
-        .class-head .time {
-          font-size: 15px;
-        }
-        .class-head .label {
-          font-size: 13px;
-        }
-        .class-head .note {
-          font-size: 13px;
-        }
-        .roster {
-          padding: 6px 10px 8px 10px;
+        .class-head {
+          padding: 4px 10px;
           gap: 5px;
         }
-        .student-chip {
-          padding: 4px 10px;
+        .class-head .time {
           font-size: 14px;
+        }
+        .class-head .label {
+          font-size: 12px;
+        }
+        .class-head .note {
+          font-size: 12px;
+        }
+        .roster {
+          padding: 5px 8px 6px 8px;
+          gap: 4px;
+        }
+        .student-chip {
+          padding: 3px 9px;
+          font-size: 13px;
+        }
+        .status-dot {
+          width: 8px;
+          height: 8px;
         }
       }
       .roster {
