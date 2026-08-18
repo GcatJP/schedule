@@ -257,6 +257,15 @@
         border: 1px solid var(--line);
         background: #fff;
       }
+      .field select {
+        font-family: inherit;
+        font-size: 20px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+      }
       .day-picker {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -350,6 +359,12 @@
         <div class="field">
           <label for="newNameInput">Name</label>
           <input type="text" id="newNameInput" placeholder="Student name" />
+        </div>
+        <div class="field">
+          <label for="siblingSelect">Link Sibling (optional)</label>
+          <select id="siblingSelect">
+            <option value="">None</option>
+          </select>
         </div>
         <div class="field">
           <label>Class Day</label>
@@ -502,7 +517,13 @@
             onLongPress: () => openNameSheet(s.id),
           });
           tr.appendChild(nameTd);
-
+          if (s.siblingId) {
+            const linkIcon = document.createElement("span");
+            linkIcon.textContent = "🔗";
+            linkIcon.style.fontSize = "14px";
+            linkIcon.style.opacity = "0.6";
+            nameInner.appendChild(linkIcon);
+          }
           // month cells
           MONTHS.forEach((_, monthIdx) => {
             const td = document.createElement("td");
@@ -530,19 +551,24 @@
 
       // ---- payment actions ----
       function togglePayment(studentId, key) {
+        const student = students.find((s) => s.id === studentId);
+        if (!student) return;
+        const nowPaid = !(student.payments && student.payments[key]);
+        const iso = nowPaid ? new Date().toISOString() : null;
+        const idsToUpdate = new Set([studentId]);
+        if (student.siblingId) idsToUpdate.add(student.siblingId);
         const list = students.map((s) => {
-          if (s.id !== studentId) return s;
+          if (!idsToUpdate.has(s.id)) return s;
           const payments = { ...(s.payments || {}) };
-          if (payments[key]) {
-            delete payments[key];
+          if (nowPaid) {
+            payments[key] = iso;
           } else {
-            payments[key] = new Date().toISOString();
+            delete payments[key];
           }
           return { ...s, payments };
         });
         saveStudents(list);
       }
-
       function showPaymentDate(studentId, key, monthIdx) {
         const s = students.find((s) => s.id === studentId);
         const iso = s && s.payments && s.payments[key];
@@ -598,7 +624,13 @@
       document.getElementById("deleteBtn").addEventListener("click", () => {
         const s = students.find((s) => s.id === activeStudentId);
         if (s && confirm(`Delete ${s.name}?`)) {
-          saveStudents(students.filter((st) => st.id !== activeStudentId));
+          let list = students.filter((st) => st.id !== activeStudentId);
+          if (s.siblingId) {
+            list = list.map((st) =>
+              st.id === s.siblingId ? { ...st, siblingId: null } : st,
+            );
+          }
+          saveStudents(list);
         }
         closeNameSheet();
       });
@@ -608,11 +640,19 @@
       const newNameInput = document.getElementById("newNameInput");
       const dayPicker = document.getElementById("dayPicker");
       let selectedDay = null;
+      const siblingSelect = document.getElementById("siblingSelect");
 
       document.getElementById("addBtn").addEventListener("click", () => {
         newNameInput.value = "";
         selectedDay = null;
         [...dayPicker.children].forEach((b) => b.classList.remove("selected"));
+        siblingSelect.innerHTML = '<option value="">None</option>';
+        students.forEach((s) => {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = `${s.name} (${DAY_LABELS[s.day] || s.day})`;
+          siblingSelect.appendChild(opt);
+        });
         addOverlay.classList.add("show");
         setTimeout(() => newNameInput.focus(), 50);
       });
@@ -639,13 +679,21 @@
           toast("Pick a class day");
           return;
         }
+        const siblingId = siblingSelect.value || null;
         const newStudent = {
           id: newId(),
           name,
           day: selectedDay,
           payments: {},
+          siblingId,
         };
-        saveStudents([...students, newStudent]);
+        let list = [...students, newStudent];
+        if (siblingId) {
+          list = list.map((s) =>
+            s.id === siblingId ? { ...s, siblingId: newStudent.id } : s,
+          );
+        }
+        saveStudents(list);
         addOverlay.classList.remove("show");
       });
 
