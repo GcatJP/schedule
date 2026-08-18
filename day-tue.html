@@ -611,6 +611,7 @@
 
       let allStudents = []; // full students array from Firestore
       let allClasses = []; // full classes array from Firestore (all days)
+      let dayResets = {}; // tracks the last reset date per day, e.g. { tue: "2026-08-18" }
       let activeClassId = null;
       let activeStudentId = null;
 
@@ -624,6 +625,7 @@
           const data = snap.data();
           allStudents = (data && data.students) || [];
           allClasses = (data && data.classes) || [];
+          dayResets = (data && data.dayResets) || {};
           statusEl.textContent = "";
           maybeResetForNewDay();
           render();
@@ -691,20 +693,28 @@
 
       function maybeResetForNewDay() {
         const today = todayStr();
-        let changed = false;
-        const updated = allClasses.map((c) => {
-          if (c.day !== DAY_KEY || c.type === "important") return c;
-          if (c.statusDate === today) return c;
-          changed = true;
-          return { ...c, statuses: {}, statusDate: today };
-        });
-        if (changed) {
-          allClasses = updated;
-          setDoc(docRef, { classes: updated }, { merge: true }).catch((e) => {
+        if (dayResets[DAY_KEY] === today) return;
+
+        const updated = allClasses
+          .filter((c) => {
+            if (c.day !== DAY_KEY) return true;
+            if (c.type === "important") return false; // clear important notes
+            if (c.timeColor === "blue") return false; // clear blue banners
+            return true;
+          })
+          .map((c) => {
+            if (c.day !== DAY_KEY || c.type === "important") return c;
+            return { ...c, statuses: {}, statusDate: today };
+          });
+
+        allClasses = updated;
+        dayResets = { ...dayResets, [DAY_KEY]: today };
+        setDoc(docRef, { classes: updated, dayResets }, { merge: true }).catch(
+          (e) => {
             console.error(e);
             statusEl.textContent = "sync error";
-          });
-        }
+          },
+        );
       }
 
       // ---- render ----
