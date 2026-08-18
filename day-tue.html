@@ -72,7 +72,7 @@
       main {
         flex: 1;
         overflow-y: auto;
-        padding: 0 12px 100px 12px;
+        padding: 0 12px 12px 12px;
         display: flex;
         flex-direction: column;
         gap: 8px;
@@ -109,6 +109,11 @@
       .class-head .label {
         font-size: 16px;
         opacity: 0.95;
+      }
+      .class-head .note {
+        font-size: 16px;
+        font-weight: bold;
+        color: var(--st-special);
       }
 
       .roster {
@@ -356,7 +361,9 @@
       <div class="sheet">
         <h2 id="classSheetTitle">Class</h2>
         <button class="action" id="editRosterBtn">Edit Roster</button>
-        <button class="action" id="editTimeBtn">Edit Time / Label</button>
+        <button class="action" id="editTimeBtn">
+          Edit Time / Label / Note
+        </button>
         <button class="action danger" id="deleteClassBtn">Delete Class</button>
         <button class="action cancel" id="classCancelBtn">Cancel</button>
       </div>
@@ -388,6 +395,14 @@
             type="text"
             id="classLabelInput"
             placeholder="e.g. Adventure Island 2"
+          />
+        </div>
+        <div class="field">
+          <label for="classNoteInput">Note (optional, shown in red)</label>
+          <input
+            type="text"
+            id="classNoteInput"
+            placeholder="e.g. Room change this week"
           />
         </div>
         <button
@@ -522,6 +537,12 @@
             labelSpan.textContent = c.label;
             head.appendChild(labelSpan);
           }
+          if (c.note) {
+            const noteSpan = document.createElement("span");
+            noteSpan.className = "note";
+            noteSpan.textContent = c.note;
+            head.appendChild(noteSpan);
+          }
           attachPress(head, {
             onLongPress: () => openClassSheet(c.id),
           });
@@ -598,6 +619,7 @@
       const classFormTitle = document.getElementById("classFormTitle");
       const classTimeInput = document.getElementById("classTimeInput");
       const classLabelInput = document.getElementById("classLabelInput");
+      const classNoteInput = document.getElementById("classNoteInput");
       let formMode = "add"; // "add" | "edit"
 
       document.getElementById("addClassBtn").addEventListener("click", () => {
@@ -605,15 +627,17 @@
         classFormTitle.textContent = "Add Class";
         classTimeInput.value = "";
         classLabelInput.value = "";
+        classNoteInput.value = "";
         classFormOverlay.classList.add("show");
         setTimeout(() => classTimeInput.focus(), 50);
       });
       document.getElementById("editTimeBtn").addEventListener("click", () => {
         formMode = "edit";
         const c = allClasses.find((c) => c.id === activeClassId);
-        classFormTitle.textContent = "Edit Time / Label";
+        classFormTitle.textContent = "Edit Time / Label / Note";
         classTimeInput.value = c ? c.time || "" : "";
         classLabelInput.value = c ? c.label || "" : "";
+        classNoteInput.value = c ? c.note || "" : "";
         classOverlay.classList.remove("show");
         classFormOverlay.classList.add("show");
       });
@@ -631,6 +655,7 @@
         .addEventListener("click", () => {
           const time = classTimeInput.value.trim();
           const label = classLabelInput.value.trim();
+          const note = classNoteInput.value.trim();
           if (!time) {
             toast("Enter a time");
             return;
@@ -641,13 +666,14 @@
               day: DAY_KEY,
               time,
               label,
+              note,
               studentIds: [],
               statuses: {},
             };
             saveClasses([...allClasses, newClass]);
           } else {
             const list = allClasses.map((c) =>
-              c.id === activeClassId ? { ...c, time, label } : c,
+              c.id === activeClassId ? { ...c, time, label, note } : c,
             );
             saveClasses(list);
           }
