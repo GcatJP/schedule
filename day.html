@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <title>Day</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com/" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --radius: 20px;
+        --tue: #e8b100;
+        --wed: #2b7a9e;
+        --thu: #3f9d5c;
+        --fri: #7c5cc4;
+        --ink: #2a2a26;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg);
+      }
+      body {
+        min-height: 100dvh;
+        font-family: "Patrick Hand", cursive;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+      }
+      header a.back {
+        text-decoration: none;
+        color: var(--ink);
+        font-size: 28px;
+        line-height: 1;
+      }
+      header h1 {
+        margin: 0;
+        font-weight: normal;
+        font-size: clamp(24px, 5vmin, 34px);
+        color: var(--ink);
+      }
+      nav.menu {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(4, 1fr);
+        gap: 14px;
+        width: 100%;
+        min-height: calc(100dvh - 70px);
+        padding: 0 18px 18px 18px;
+      }
+      @media (orientation: landscape) and (min-width: 820px) {
+        nav.menu {
+          grid-template-columns: repeat(4, 1fr);
+          grid-template-rows: 1fr;
+        }
+      }
+      a.btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius);
+        text-decoration: none;
+        color: #ffffff;
+        font-size: clamp(28px, 6vmin, 46px);
+        letter-spacing: 0.5px;
+        box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+        transition:
+          transform 0.1s ease,
+          box-shadow 0.1s ease;
+      }
+      a.btn:active {
+        transform: translateY(2px);
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+      }
+      .btn-tue {
+        background: var(--tue);
+        color: #2a2a26;
+      }
+      .btn-wed {
+        background: var(--wed);
+      }
+      .btn-thu {
+        background: var(--thu);
+      }
+      .btn-fri {
+        background: var(--fri);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="back" href="index.html">‹</a>
+      <h1>Day</h1>
+    </header>
+    <nav class="menu">
+      <a class="btn btn-tue" href="day-tue.html">Tuesday</a>
+      <a class="btn btn-wed" href="day-wed.html">Wednesday</a>
+      <a class="btn btn-thu" href="day-thu.html">Thursday</a>
+      <a class="btn btn-fri" href="day-fri.html">Friday</a>
+    </nav>
+  </body>
+</html>
