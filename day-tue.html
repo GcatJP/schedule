@@ -115,7 +115,29 @@
         font-weight: bold;
         color: var(--st-special);
       }
-
+      @media (max-width: 500px) and (orientation: portrait) {
+        .class-head {
+          padding: 5px 12px;
+          gap: 6px;
+        }
+        .class-head .time {
+          font-size: 15px;
+        }
+        .class-head .label {
+          font-size: 13px;
+        }
+        .class-head .note {
+          font-size: 13px;
+        }
+        .roster {
+          padding: 6px 10px 8px 10px;
+          gap: 5px;
+        }
+        .student-chip {
+          padding: 4px 10px;
+          font-size: 14px;
+        }
+      }
       .roster {
         display: flex;
         flex-wrap: wrap;
@@ -338,6 +360,29 @@
         opacity: 0.5;
         z-index: 20;
       }
+      #legend {
+        position: fixed;
+        top: calc(10px + env(safe-area-inset-top));
+        right: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        z-index: 20;
+        pointer-events: none;
+      }
+      #legend span.st-present {
+        color: var(--st-present);
+      }
+      #legend span.st-absent {
+        color: var(--st-absent);
+      }
+      #legend span.st-online {
+        color: var(--st-online);
+      }
+      #legend span.st-special {
+        color: var(--st-special);
+      }
     </style>
   </head>
   <body>
@@ -347,7 +392,12 @@
     </header>
 
     <div id="status"></div>
-
+    <div id="legend">
+      <span class="st-present">Present</span>
+      <span class="st-absent">Absent</span>
+      <span class="st-online">Online</span>
+      <span class="st-special">Special</span>
+    </div>
     <main id="classesContainer">
       <div class="empty-hint" id="emptyHint">
         No classes yet. Tap + to add one.
