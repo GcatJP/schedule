@@ -49,9 +49,7 @@
       }
       header a.back {
         text-decoration: none;
-        color: var(--ink);
-        font-size: 28px;
-        line-height: 1;
+        display: inline-block;
       }
       header h1 {
         margin: 0;
@@ -109,8 +107,9 @@
   </head>
   <body>
     <header>
-      <a class="back" href="menu.html">‹</a>
-      <h1>Day</h1>
+      <a class="back" href="menu.html">
+        <h1>Day</h1>
+      </a>
     </header>
     <nav class="menu">
       <a class="btn btn-tue" href="day-tue.html">Tuesday</a>

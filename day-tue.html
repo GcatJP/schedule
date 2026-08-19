@@ -104,7 +104,7 @@
         font-weight: bold;
       }
       .class-head.banner-blue {
-        background: #8e44ad;
+        background: #d1495b;
       }
       .class-head .label {
         font-size: 16px;
@@ -390,7 +390,7 @@
   <body>
     <header>
       <a class="back" href="menu.html">
-        <h1>Wednesday</h1>
+        <h1>Tuesday</h1>
       </a>
     </header>
 
@@ -1190,16 +1190,7 @@
       statusOverlay.addEventListener("click", (e) => {
         if (e.target === statusOverlay) closeStatusSheet();
       });
-      function setStatus(status) {
-        const list = allClasses.map((c) => {
-          if (c.id !== activeClassId) return c;
-          const statuses = { ...(c.statuses || {}) };
-          statuses[activeStudentId] = status;
-          return { ...c, statuses };
-        });
-        saveClasses(list);
-        closeStatusSheet();
-      }
+
       function setStatus(status) {
         const list = allClasses.map((c) => {
           if (c.id !== activeClassId) return c;
