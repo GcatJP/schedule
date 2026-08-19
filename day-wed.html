@@ -698,11 +698,18 @@
       function currentOccurrenceDate() {
         const targetIdx = DAY_INDEX[DAY_KEY];
         const now = new Date();
-        const diff = (now.getDay() - targetIdx + 7) % 7;
-        return new Date(
+        const currentDow = now.getDay(); // 0=Sun..6=Sat
+        const mondayOffset = currentDow === 0 ? -6 : 1 - currentDow;
+        const monday = new Date(
           now.getFullYear(),
           now.getMonth(),
-          now.getDate() - diff,
+          now.getDate() + mondayOffset,
+        );
+        const targetOffsetFromMonday = targetIdx === 0 ? 6 : targetIdx - 1;
+        return new Date(
+          monday.getFullYear(),
+          monday.getMonth(),
+          monday.getDate() + targetOffsetFromMonday,
         );
       }
 
