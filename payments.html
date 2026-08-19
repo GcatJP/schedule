@@ -548,9 +548,9 @@
               cell.textContent = "✓";
             }
             attachPress(cell, {
-              onTap: () => togglePayment(s.id, key),
               onLongPress: () => showPaymentDate(s.id, key, monthIdx),
             });
+            attachDoubleTap(cell, () => togglePayment(s.id, key));
             td.appendChild(cell);
             tr.appendChild(td);
           });
@@ -742,6 +742,20 @@
             if (navigator.vibrate) navigator.vibrate(15);
             onLongPress && onLongPress();
           }, delay);
+        }
+        // ---- double-tap detector (separate from attachPress since
+        // long-press on pay-cells is already used for showPaymentDate) ----
+        function attachDoubleTap(el, callback, delay = 300) {
+          let lastTap = 0;
+          el.addEventListener("pointerup", () => {
+            const now = Date.now();
+            if (now - lastTap < delay) {
+              callback();
+              lastTap = 0;
+            } else {
+              lastTap = now;
+            }
+          });
         }
         function move(e) {
           if (

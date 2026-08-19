@@ -690,7 +690,12 @@
         const day = String(d.getDate()).padStart(2, "0");
         return `${y}-${m}-${day}`;
       }
-
+      function dateStr(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
       // The calendar date this page's data currently belongs to: today's
       // date if today IS this page's day, otherwise the most recent past
       // occurrence of that day (since the data isn't cleared until the
@@ -698,21 +703,13 @@
       function currentOccurrenceDate() {
         const targetIdx = DAY_INDEX[DAY_KEY];
         const now = new Date();
-        const currentDow = now.getDay(); // 0=Sun..6=Sat
-        const mondayOffset = currentDow === 0 ? -6 : 1 - currentDow;
-        const monday = new Date(
+        const diff = (targetIdx - now.getDay() + 7) % 7;
+        return new Date(
           now.getFullYear(),
           now.getMonth(),
-          now.getDate() + mondayOffset,
-        );
-        const targetOffsetFromMonday = targetIdx === 0 ? 6 : targetIdx - 1;
-        return new Date(
-          monday.getFullYear(),
-          monday.getMonth(),
-          monday.getDate() + targetOffsetFromMonday,
+          now.getDate() + diff,
         );
       }
-
       function renderLegendDate() {
         const el = document.getElementById("legend");
         if (!el) return;
@@ -724,14 +721,13 @@
       }
 
       function maybeResetForNewDay() {
-        // Only ever reset this page's data when today actually IS this
-        // page's day of the week. Otherwise, opening the Wednesday page
-        // on, say, a Tuesday would wrongly wipe Wednesday's notes/statuses
-        // just because the date differs from the last stored reset date.
-        if (new Date().getDay() !== DAY_INDEX[DAY_KEY]) return;
-
-        const today = todayStr();
-        if (dayResets[DAY_KEY] === today) return;
+        // The date this page is currently "pointing at" — today if today
+        // IS this page's day, otherwise the next upcoming occurrence.
+        // Reset only when that target date has moved on from whatever
+        // occurrence we last set up for (i.e. the class day has passed
+        // and the page has advanced to next week).
+        const occurrenceStr = dateStr(currentOccurrenceDate());
+        if (dayResets[DAY_KEY] === occurrenceStr) return;
 
         const updated = allClasses
           .filter((c) => {
@@ -742,11 +738,11 @@
           })
           .map((c) => {
             if (c.day !== DAY_KEY || c.type === "important") return c;
-            return { ...c, statuses: {}, note: "", statusDate: today };
+            return { ...c, statuses: {}, note: "", statusDate: occurrenceStr };
           });
 
         allClasses = updated;
-        dayResets = { ...dayResets, [DAY_KEY]: today };
+        dayResets = { ...dayResets, [DAY_KEY]: occurrenceStr };
         setDoc(docRef, { classes: updated, dayResets }, { merge: true }).catch(
           (e) => {
             console.error(e);
