@@ -104,7 +104,7 @@
         font-weight: bold;
       }
       .class-head.banner-blue {
-        background: #2f80ed;
+        background: #8e44ad;
       }
       .class-head .label {
         font-size: 16px;
@@ -380,21 +380,10 @@
         position: fixed;
         top: calc(10px + env(safe-area-inset-top));
         right: 14px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 13px;
+        font-size: 20px;
+        opacity: 0.6;
         z-index: 20;
         pointer-events: none;
-      }
-      #legend span.st-present {
-        color: var(--st-present);
-      }
-      #legend span.st-absent {
-        color: var(--st-absent);
-      }
-      #legend span.st-special {
-        color: var(--st-special);
       }
     </style>
   </head>
@@ -406,11 +395,7 @@
     </header>
 
     <div id="status"></div>
-    <div id="legend">
-      <span class="st-present">Present</span>
-      <span class="st-absent">Absent</span>
-      <span class="st-special">Special</span>
-    </div>
+    <div id="legend"></div>
     <main id="classesContainer">
       <div class="empty-hint" id="emptyHint">
         No classes yet. Tap + to add one.
@@ -440,9 +425,10 @@
       <div class="sheet">
         <h2 id="classSheetTitle">Class</h2>
         <button class="action" id="editTimeBtn">Notes</button>
-        <button class="action" id="editRosterBtn">Edit Roster</button>
+
         <button class="action" id="moveClassUpBtn">Move Up</button>
         <button class="action" id="moveClassDownBtn">Move Down</button>
+        <button class="action" id="editRosterBtn">Edit Roster</button>
         <button class="action danger" id="deleteClassBtn">Delete Class</button>
         <button class="action cancel" id="classCancelBtn">Cancel</button>
       </div>
@@ -490,7 +476,7 @@
               id="timeBlueCheckbox"
               style="width: 20px; height: 20px"
             />
-            Make banner blue
+            Online
           </label>
         </div>
         <button
@@ -606,18 +592,31 @@
       const docRef = doc(db, "schedules", "main");
 
       const DAY_KEY = "wed"; // <-- differs per day file
+      // Maps each day file's key to JS Date.getDay() (0=Sun ... 6=Sat)
+      const DAY_INDEX = {
+        sun: 0,
+        mon: 1,
+        tue: 2,
+        wed: 3,
+        thu: 4,
+        fri: 5,
+        sat: 6,
+      };
       const LONG_PRESS_MS = 500;
       const MOVE_TOLERANCE = 10;
 
       let allStudents = []; // full students array from Firestore
       let allClasses = []; // full classes array from Firestore (all days)
       let dayResets = {}; // tracks the last reset date per day, e.g. { tue: "2026-08-18" }
+      let attendanceLog = {}; // permanent history: { [classId]: { [dateStr]: { [studentId]: "absent" } } }
       let activeClassId = null;
       let activeStudentId = null;
 
       const statusEl = document.getElementById("status");
       const container = document.getElementById("classesContainer");
       const emptyHint = document.getElementById("emptyHint");
+
+      renderLegendDate();
 
       onSnapshot(
         docRef,
@@ -626,6 +625,7 @@
           allStudents = (data && data.students) || [];
           allClasses = (data && data.classes) || [];
           dayResets = (data && data.dayResets) || {};
+          attendanceLog = (data && data.attendanceLog) || {};
           statusEl.textContent = "";
           maybeResetForNewDay();
           render();
@@ -691,7 +691,38 @@
         return `${y}-${m}-${day}`;
       }
 
+      // The calendar date this page's data currently belongs to: today's
+      // date if today IS this page's day, otherwise the most recent past
+      // occurrence of that day (since the data isn't cleared until the
+      // next midnight rollover into this day).
+      function currentOccurrenceDate() {
+        const targetIdx = DAY_INDEX[DAY_KEY];
+        const now = new Date();
+        const diff = (now.getDay() - targetIdx + 7) % 7;
+        return new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - diff,
+        );
+      }
+
+      function renderLegendDate() {
+        const el = document.getElementById("legend");
+        if (!el) return;
+        const d = currentOccurrenceDate();
+        el.textContent = d.toLocaleDateString(undefined, {
+          month: "long",
+          day: "numeric",
+        });
+      }
+
       function maybeResetForNewDay() {
+        // Only ever reset this page's data when today actually IS this
+        // page's day of the week. Otherwise, opening the Wednesday page
+        // on, say, a Tuesday would wrongly wipe Wednesday's notes/statuses
+        // just because the date differs from the last stored reset date.
+        if (new Date().getDay() !== DAY_INDEX[DAY_KEY]) return;
+
         const today = todayStr();
         if (dayResets[DAY_KEY] === today) return;
 
@@ -704,7 +735,7 @@
           })
           .map((c) => {
             if (c.day !== DAY_KEY || c.type === "important") return c;
-            return { ...c, statuses: {}, statusDate: today };
+            return { ...c, statuses: {}, note: "", statusDate: today };
           });
 
         allClasses = updated;
@@ -743,17 +774,17 @@
             labelSpan.textContent = c.label;
             head.appendChild(labelSpan);
           }
+
+          attachPress(head, {
+            onTap: () => openClassSheet(c.id),
+          });
+          card.appendChild(head);
           if (c.note) {
             const noteSpan = document.createElement("span");
             noteSpan.className = "note";
             noteSpan.textContent = c.note;
             head.appendChild(noteSpan);
           }
-          attachPress(head, {
-            onLongPress: () => openClassSheet(c.id),
-          });
-          card.appendChild(head);
-
           if (c.timeColor !== "blue") {
             const roster = document.createElement("div");
             roster.className = "roster";
@@ -888,6 +919,7 @@
       const classTimeInput = document.getElementById("classTimeInput");
       const classLabelInput = document.getElementById("classLabelInput");
       const classNoteInput = document.getElementById("classNoteInput");
+
       let formMode = "add"; // "add" | "edit"
 
       document
@@ -899,6 +931,7 @@
           classTimeInput.value = "";
           classLabelInput.value = "";
           classNoteInput.value = "";
+
           timeBlueCheckbox.checked = false;
           classFormOverlay.classList.add("show");
           setTimeout(() => classTimeInput.focus(), 50);
@@ -910,6 +943,7 @@
         classTimeInput.value = c ? c.time || "" : "";
         classLabelInput.value = c ? c.label || "" : "";
         classNoteInput.value = c ? c.note || "" : "";
+
         timeBlueCheckbox.checked = c ? c.timeColor === "blue" : false;
         classOverlay.classList.remove("show");
         classFormOverlay.classList.add("show");
@@ -929,6 +963,7 @@
           const time = classTimeInput.value.trim();
           const label = classLabelInput.value.trim();
           const note = classNoteInput.value.trim();
+
           const timeColor = timeBlueCheckbox.checked ? "blue" : null;
           if (!time) {
             toast("Enter a time");
@@ -1164,6 +1199,45 @@
         });
         saveClasses(list);
         closeStatusSheet();
+      }
+      function setStatus(status) {
+        const list = allClasses.map((c) => {
+          if (c.id !== activeClassId) return c;
+          const statuses = { ...(c.statuses || {}) };
+          statuses[activeStudentId] = status;
+          return { ...c, statuses };
+        });
+        logAttendance(activeClassId, activeStudentId, status);
+        saveClasses(list);
+        closeStatusSheet();
+      }
+      function logAttendance(classId, studentId, status) {
+        const dateStr = todayStr();
+        const newLog = { ...attendanceLog };
+        const classLog = { ...(newLog[classId] || {}) };
+        const dayLog = { ...(classLog[dateStr] || {}) };
+        if (status === "absent") {
+          dayLog[studentId] = "absent";
+        } else {
+          delete dayLog[studentId]; // present or special both count as present in the register
+        }
+        if (Object.keys(dayLog).length === 0) {
+          delete classLog[dateStr];
+        } else {
+          classLog[dateStr] = dayLog;
+        }
+        if (Object.keys(classLog).length === 0) {
+          delete newLog[classId];
+        } else {
+          newLog[classId] = classLog;
+        }
+        attendanceLog = newLog;
+        setDoc(docRef, { attendanceLog: newLog }, { merge: true }).catch(
+          (e) => {
+            console.error(e);
+            statusEl.textContent = "sync error";
+          },
+        );
       }
       document
         .getElementById("setPresentBtn")
