@@ -609,6 +609,7 @@
       let allClasses = []; // full classes array from Firestore (all days)
       let dayResets = {}; // tracks the last reset date per day, e.g. { tue: "2026-08-18" }
       let attendanceLog = {}; // permanent history: { [classId]: { [dateStr]: { [studentId]: "absent" } } }
+      let scheduledEvents = []; // events scheduled ahead of time from the Events page
       let activeClassId = null;
       let activeStudentId = null;
 
@@ -626,8 +627,10 @@
           allClasses = (data && data.classes) || [];
           dayResets = (data && data.dayResets) || {};
           attendanceLog = (data && data.attendanceLog) || {};
+          scheduledEvents = (data && data.scheduledEvents) || [];
           statusEl.textContent = "";
           maybeResetForNewDay();
+          applyScheduledEventsForToday();
 
           const sorted = sortClassesByTime(allClasses);
           if (
@@ -792,7 +795,56 @@
           },
         );
       }
+      function applyScheduledEventsForToday() {
+        const today = todayStr();
+        const dueToday = scheduledEvents.filter(
+          (e) => e.day === DAY_KEY && e.date === today,
+        );
+        if (dueToday.length === 0) return;
 
+        let updatedClasses = [...allClasses];
+
+        dueToday.forEach((e) => {
+          if (e.type === "status") {
+            updatedClasses = updatedClasses.map((c) => {
+              if (c.id !== e.classId) return c;
+              const statuses = { ...(c.statuses || {}) };
+              statuses[e.studentId] = e.status;
+              return { ...c, statuses };
+            });
+            logAttendance(e.classId, e.studentId, e.status);
+          } else if (e.type === "online") {
+            updatedClasses = updatedClasses.map((c) =>
+              c.id === e.classId ? { ...c, timeColor: "blue" } : c,
+            );
+          } else if (e.type === "important") {
+            updatedClasses = [
+              ...updatedClasses,
+              {
+                id: newId(),
+                day: DAY_KEY,
+                type: "important",
+                text: e.text,
+              },
+            ];
+          }
+        });
+
+        const remainingEvents = scheduledEvents.filter(
+          (e) => !(e.day === DAY_KEY && e.date === today),
+        );
+
+        allClasses = updatedClasses;
+        scheduledEvents = remainingEvents;
+        setDoc(
+          docRef,
+          { classes: updatedClasses, scheduledEvents: remainingEvents },
+          { merge: true },
+        ).catch((e) => {
+          console.error(e);
+          statusEl.textContent = "sync error";
+        });
+      }
       // ---- render ----
       function render() {
         const classes = dayClasses();

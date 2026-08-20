@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <title>Events</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com/" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --daycolor: #c96a1f;
+        --ink: #2a2a26;
+        --line: #d9d7d1;
+
+        --st-present: var(--ink);
+        --st-absent: #e8b100;
+        --st-special: #d1495b;
+        --st-online: #2f80ed;
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: var(--bg);
+      }
+      body {
+        min-height: 100dvh;
+        font-family: "Patrick Hand", cursive;
+        color: var(--ink);
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 14px;
+      }
+      header a.back {
+        text-decoration: none;
+        display: inline-block;
+      }
+      header h1 {
+        margin: 0;
+        font-weight: normal;
+        font-size: clamp(24px, 5vmin, 34px);
+        color: var(--daycolor);
+      }
+
+      main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 12px 12px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .empty-hint {
+        text-align: center;
+        opacity: 0.5;
+        font-size: 20px;
+        margin-top: 40px;
+      }
+
+      .no-students {
+        padding: 8px 14px 12px 14px;
+        opacity: 0.5;
+        font-size: 15px;
+      }
+
+      /* ---- upcoming list ---- */
+      .upcoming-date-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .upcoming-date-header {
+        font-size: 20px;
+        color: var(--daycolor);
+        padding: 0 4px;
+      }
+      .upcoming-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: #fff;
+        border-radius: 12px;
+        padding: 10px 14px;
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
+      }
+      .upcoming-row.pressed {
+        background: rgba(0, 0, 0, 0.06);
+      }
+      .upcoming-row .label {
+        font-size: 18px;
+      }
+      .upcoming-row .tag {
+        font-size: 15px;
+        font-weight: bold;
+        white-space: nowrap;
+      }
+
+      /* ---- calendar ---- */
+      .calendar-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .calendar-nav button {
+        background: none;
+        border: none;
+        font-family: inherit;
+        font-size: 26px;
+        color: var(--daycolor);
+        padding: 4px 12px;
+      }
+      .calendar-nav h2 {
+        margin: 0;
+        font-weight: normal;
+        font-size: 22px;
+      }
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+      }
+      .calendar-daylabel {
+        text-align: center;
+        font-size: 14px;
+        opacity: 0.5;
+        padding-bottom: 4px;
+      }
+      .calendar-cell {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 18px;
+      }
+      .calendar-cell.actionable {
+        background: #fff;
+        border: 2px solid var(--line);
+      }
+      .calendar-cell.actionable.pressed {
+        transform: scale(0.92);
+      }
+      .calendar-cell.disabled {
+        opacity: 0.25;
+      }
+      .calendar-cell.today {
+        border-color: var(--daycolor);
+        font-weight: bold;
+      }
+      .calendar-cell.has-events {
+        background: var(--daycolor);
+        border-color: var(--daycolor);
+        color: #fff;
+      }
+
+      /* ---- date detail ---- */
+      .date-detail-class {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .date-detail-class-head {
+        padding: 8px 14px;
+        background: var(--daycolor);
+        color: #fff;
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .date-detail-class-head.pressed {
+        filter: brightness(0.92);
+      }
+      .date-detail-class-head.marked-online {
+        background: var(--st-online);
+      }
+      .date-detail-class .roster {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 12px 10px 12px;
+      }
+      .student-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 999px;
+        border: 2px solid var(--line);
+        background: #fff;
+        font-size: 16px;
+        white-space: nowrap;
+        line-height: 1.2;
+      }
+      .student-chip.pressed {
+        background: rgba(0, 0, 0, 0.06);
+      }
+      .status-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .student-chip.st-present .status-dot {
+        background: transparent;
+        border: 2px solid var(--line);
+      }
+      .student-chip.st-absent .status-dot {
+        background: var(--st-absent);
+      }
+      .student-chip.st-special .status-dot {
+        background: var(--st-special);
+      }
+      .student-chip.st-present .student-name {
+        color: var(--st-present);
+      }
+      .student-chip.st-absent {
+        border-color: var(--st-absent);
+      }
+      .student-chip.st-absent .student-name {
+        color: var(--st-absent);
+      }
+      .student-chip.st-special {
+        border-color: var(--st-special);
+      }
+      .student-chip.st-special .student-name {
+        color: var(--st-special);
+      }
+
+      /* floating add button */
+      .fab {
+        position: fixed;
+        right: 20px;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: var(--daycolor);
+        color: #fff;
+        border: none;
+        font-size: 30px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+      }
+      .fab:active {
+        transform: scale(0.95);
+      }
+
+      /* overlay + sheets */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        display: none;
+        align-items: flex-end;
+        justify-content: center;
+        z-index: 10;
+      }
+      .overlay.show {
+        display: flex;
+      }
+      .sheet {
+        width: 100%;
+        max-width: 480px;
+        max-height: 85dvh;
+        overflow-y: auto;
+        background: var(--bg);
+        border-radius: 20px 20px 0 0;
+        padding: 16px 16px calc(16px + env(safe-area-inset-bottom)) 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .sheet h2 {
+        margin: 0 0 4px 0;
+        font-weight: normal;
+        font-size: 24px;
+        text-align: center;
+      }
+      .sheet button.action {
+        padding: 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        font-family: inherit;
+        font-size: 20px;
+        background: #fff;
+        color: var(--ink);
+      }
+      .sheet button.action.cancel {
+        color: #888;
+      }
+      .sheet button.action.danger {
+        color: var(--st-special);
+      }
+      .sheet button.action:active {
+        transform: scale(0.98);
+      }
+      .sheet button.action.st-present {
+        color: var(--st-present);
+        border-color: var(--st-present);
+      }
+      .sheet button.action.st-absent {
+        color: #fff;
+        background: var(--st-absent);
+        border-color: var(--st-absent);
+      }
+      .sheet button.action.st-special {
+        color: #fff;
+        background: var(--st-special);
+        border-color: var(--st-special);
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field label {
+        font-size: 16px;
+        opacity: 0.7;
+      }
+      .field input[type="text"] {
+        font-family: inherit;
+        font-size: 20px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      #toast {
+        position: fixed;
+        left: 50%;
+        bottom: calc(90px + env(safe-area-inset-bottom));
+        transform: translateX(-50%) translateY(20px);
+        background: var(--ink);
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 14px;
+        font-size: 18px;
+        max-width: 86vw;
+        text-align: center;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.15s ease,
+          transform 0.15s ease;
+        z-index: 20;
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      #status {
+        position: fixed;
+        top: calc(10px + env(safe-area-inset-top));
+        right: 14px;
+        font-size: 14px;
+        opacity: 0.5;
+        z-index: 20;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="back" href="menu.html">
+        <h1>Events</h1>
+      </a>
+    </header>
+
+    <div id="status"></div>
+    <main id="upcomingContainer">
+      <div class="empty-hint" id="emptyHint">
+        No upcoming events. Tap + to schedule one.
+      </div>
+    </main>
+
+    <button class="fab" id="addBtn">+</button>
+
+    <!-- calendar overlay -->
+    <div class="overlay" id="calendarOverlay">
+      <div class="sheet">
+        <div class="calendar-nav">
+          <button type="button" id="prevMonthBtn">‹</button>
+          <h2 id="calendarMonthLabel">Month</h2>
+          <button type="button" id="nextMonthBtn">›</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <button class="action cancel" id="calendarCancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- date detail overlay -->
+    <div class="overlay" id="dateDetailOverlay">
+      <div class="sheet">
+        <h2 id="dateDetailTitle">Date</h2>
+        <div id="dateDetailClasses"></div>
+        <button
+          class="action"
+          id="addImportantForDateBtn"
+          style="color: var(--st-special); border-color: var(--st-special)"
+        >
+          + Important Note
+        </button>
+        <button class="action cancel" id="dateDetailCancelBtn">Close</button>
+      </div>
+    </div>
+
+    <!-- status sheet for a scheduled student -->
+    <div class="overlay" id="statusOverlay">
+      <div class="sheet">
+        <h2 id="statusSheetTitle">Student</h2>
+        <button class="action st-present" id="setPresentBtn">Present</button>
+        <button class="action st-absent" id="setAbsentBtn">Absent</button>
+        <button class="action st-special" id="setSpecialBtn">Special</button>
+        <button class="action cancel" id="statusCancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- class options sheet (online toggle) -->
+    <div class="overlay" id="classOptionsOverlay">
+      <div class="sheet">
+        <h2 id="classOptionsTitle">Class</h2>
+        <button
+          class="action"
+          id="toggleOnlineBtn"
+          style="color: var(--st-online); border-color: var(--st-online)"
+        >
+          Mark Online
+        </button>
+        <button class="action cancel" id="classOptionsCancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- important note form -->
+    <div class="overlay" id="importantFormOverlay">
+      <div class="sheet">
+        <h2>Add Important Note</h2>
+        <div class="field">
+          <label for="importantTextInput">Note</label>
+          <input
+            type="text"
+            id="importantTextInput"
+            placeholder="e.g. Field trip form due"
+          />
+        </div>
+        <button
+          class="action"
+          id="saveImportantBtn"
+          style="background: var(--st-special); color: #fff; border: none"
+        >
+          Save
+        </button>
+        <button class="action cancel" id="importantFormCancelBtn">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+      import {
+        getFirestore,
+        doc,
+        onSnapshot,
+        setDoc,
+      } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAegz9XGRoiPIJZW_Iw9IrXXMYx_-EDn9E",
+        authDomain: "schedule-69a31.firebaseapp.com",
+        projectId: "schedule-69a31",
+        storageBucket: "schedule-69a31.firebasestorage.app",
+        messagingSenderId: "211061390173",
+        appId: "1:211061390173:web:158b55a901284e5b3e46b4",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const docRef = doc(db, "schedules", "main");
+
+      // Sun=0 ... Sat=6. Only Tue-Fri are actionable on the calendar.
+      const DAY_KEY_BY_INDEX = { 2: "tue", 3: "wed", 4: "thu", 5: "fri" };
+      const LONG_PRESS_MS = 500;
+      const MOVE_TOLERANCE = 10;
+
+      let allStudents = [];
+      let allClasses = [];
+      let scheduledEvents = [];
+      let calendarMonth = new Date();
+      let activeDate = null;
+      let activeStatusContext = null; // { classId, studentId, ds }
+      let activeClassOptionsContext = null; // { classId, ds }
+
+      const statusEl = document.getElementById("status");
+      const container = document.getElementById("upcomingContainer");
+      const emptyHint = document.getElementById("emptyHint");
+
+      onSnapshot(
+        docRef,
+        (snap) => {
+          const data = snap.data();
+          allStudents = (data && data.students) || [];
+          allClasses = (data && data.classes) || [];
+          scheduledEvents = (data && data.scheduledEvents) || [];
+          statusEl.textContent = "";
+          renderUpcoming();
+        },
+        (err) => {
+          console.error(err);
+          statusEl.textContent = "offline";
+        },
+      );
+
+      async function saveScheduledEvents(newEvents) {
+        scheduledEvents = newEvents;
+        renderUpcoming();
+        try {
+          await setDoc(docRef, { scheduledEvents: newEvents }, { merge: true });
+        } catch (e) {
+          console.error(e);
+          statusEl.textContent = "sync error";
+        }
+      }
+
+      function newId() {
+        return (
+          (crypto.randomUUID && crypto.randomUUID()) ||
+          `${Date.now()}-${Math.random().toString(16).slice(2)}`
+        );
+      }
+
+      function studentName(id) {
+        const s = allStudents.find((s) => s.id === id);
+        return s ? s.name : "(removed)";
+      }
+
+      function dateStrOf(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
+      function parseDateStr(s) {
+        const [y, m, d] = s.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }
+      function parseTimeToMinutes(timeStr) {
+        if (!timeStr) return Infinity;
+        const match = timeStr
+          .trim()
+          .match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/);
+        if (!match) return Infinity;
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        const meridiem = match[3] ? match[3].toUpperCase() : null;
+        if (meridiem === "PM" && hours !== 12) hours += 12;
+        if (meridiem === "AM" && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      }
+
+      // ---- upcoming list ----
+      function renderUpcoming() {
+        container.innerHTML = "";
+        const todayS = dateStrOf(new Date());
+        const future = scheduledEvents
+          .filter((e) => e.date >= todayS)
+          .slice()
+          .sort((a, b) => a.date.localeCompare(b.date));
+        if (future.length === 0) {
+          container.appendChild(emptyHint);
+          return;
+        }
+        const groups = {};
+        future.forEach((e) => {
+          (groups[e.date] = groups[e.date] || []).push(e);
+        });
+        Object.keys(groups)
+          .sort()
+          .forEach((dateKey) => {
+            const events = groups[dateKey];
+            const groupDiv = document.createElement("div");
+            groupDiv.className = "upcoming-date-group";
+            const header = document.createElement("div");
+            header.className = "upcoming-date-header";
+            header.textContent = parseDateStr(dateKey).toLocaleDateString(
+              undefined,
+              { weekday: "long", month: "long", day: "numeric" },
+            );
+            groupDiv.appendChild(header);
+
+            events.forEach((e) => {
+              const row = document.createElement("div");
+              row.className = "upcoming-row";
+              const label = document.createElement("span");
+              label.className = "label";
+              const tag = document.createElement("span");
+              tag.className = "tag";
+
+              if (e.type === "status") {
+                const cls = allClasses.find((c) => c.id === e.classId);
+                label.textContent = `${studentName(e.studentId)}${cls ? " — " + (cls.time || "") : ""}`;
+                tag.textContent = e.status === "absent" ? "Absent" : "Special";
+                tag.style.color =
+                  e.status === "absent"
+                    ? "var(--st-absent)"
+                    : "var(--st-special)";
+              } else if (e.type === "online") {
+                const cls = allClasses.find((c) => c.id === e.classId);
+                label.textContent = cls
+                  ? `${cls.time || ""}${cls.label ? " — " + cls.label : ""}`
+                  : "Class";
+                tag.textContent = "Online";
+                tag.style.color = "var(--st-online)";
+              } else if (e.type === "important") {
+                label.textContent = e.text;
+                tag.textContent = "Important";
+                tag.style.color = "var(--st-special)";
+              }
+
+              row.appendChild(label);
+              row.appendChild(tag);
+              attachPress(row, {
+                onLongPress: () => confirmDeleteEvent(e.id),
+              });
+              groupDiv.appendChild(row);
+            });
+
+            container.appendChild(groupDiv);
+          });
+      }
+
+      function confirmDeleteEvent(id) {
+        if (confirm("Remove this scheduled item?")) {
+          saveScheduledEvents(scheduledEvents.filter((e) => e.id !== id));
+        }
+      }
+
+      // ---- calendar ----
+      const calendarOverlay = document.getElementById("calendarOverlay");
+      const calendarGrid = document.getElementById("calendarGrid");
+      const calendarMonthLabel = document.getElementById("calendarMonthLabel");
+
+      document.getElementById("addBtn").addEventListener("click", () => {
+        calendarMonth = new Date();
+        renderCalendar();
+        calendarOverlay.classList.add("show");
+      });
+      document
+        .getElementById("calendarCancelBtn")
+        .addEventListener("click", () => {
+          calendarOverlay.classList.remove("show");
+        });
+      calendarOverlay.addEventListener("click", (e) => {
+        if (e.target === calendarOverlay)
+          calendarOverlay.classList.remove("show");
+      });
+      document.getElementById("prevMonthBtn").addEventListener("click", () => {
+        calendarMonth = new Date(
+          calendarMonth.getFullYear(),
+          calendarMonth.getMonth() - 1,
+          1,
+        );
+        renderCalendar();
+      });
+      document.getElementById("nextMonthBtn").addEventListener("click", () => {
+        calendarMonth = new Date(
+          calendarMonth.getFullYear(),
+          calendarMonth.getMonth() + 1,
+          1,
+        );
+        renderCalendar();
+      });
+
+      function renderCalendar() {
+        calendarMonthLabel.textContent = calendarMonth.toLocaleDateString(
+          undefined,
+          { month: "long", year: "numeric" },
+        );
+        calendarGrid.innerHTML = "";
+        ["S", "M", "T", "W", "T", "F", "S"].forEach((l) => {
+          const el = document.createElement("div");
+          el.className = "calendar-daylabel";
+          el.textContent = l;
+          calendarGrid.appendChild(el);
+        });
+
+        const year = calendarMonth.getFullYear();
+        const month = calendarMonth.getMonth();
+        const startOffset = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const todayS = dateStrOf(new Date());
+
+        for (let i = 0; i < startOffset; i++) {
+          calendarGrid.appendChild(document.createElement("div"));
+        }
+        for (let day = 1; day <= daysInMonth; day++) {
+          const d = new Date(year, month, day);
+          const dow = d.getDay();
+          const ds = dateStrOf(d);
+          const cell = document.createElement("div");
+          cell.className = "calendar-cell";
+          cell.textContent = day;
+
+          const isActionableDow = dow >= 2 && dow <= 5; // Tue-Fri
+          const isPast = ds < todayS;
+          if (ds === todayS) cell.classList.add("today");
+          const hasEvents = scheduledEvents.some((e) => e.date === ds);
+
+          if (isActionableDow && !isPast) {
+            cell.classList.add("actionable");
+            if (hasEvents) cell.classList.add("has-events");
+            attachPress(cell, { onTap: () => openDateDetail(d) });
+          } else {
+            cell.classList.add("disabled");
+          }
+          calendarGrid.appendChild(cell);
+        }
+      }
+
+      // ---- date detail ----
+      const dateDetailOverlay = document.getElementById("dateDetailOverlay");
+      const dateDetailTitle = document.getElementById("dateDetailTitle");
+      const dateDetailClasses = document.getElementById("dateDetailClasses");
+
+      function openDateDetail(d) {
+        activeDate = d;
+        const ds = dateStrOf(d);
+        const dayKey = DAY_KEY_BY_INDEX[d.getDay()];
+        calendarOverlay.classList.remove("show");
+        dateDetailTitle.textContent = d.toLocaleDateString(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        });
+
+        const classesForDay = allClasses
+          .filter((c) => c.day === dayKey && c.type !== "important")
+          .slice()
+          .sort(
+            (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time),
+          );
+
+        dateDetailClasses.innerHTML = "";
+        if (classesForDay.length === 0) {
+          const p = document.createElement("div");
+          p.className = "no-students";
+          p.textContent = "No classes set up for this day yet.";
+          dateDetailClasses.appendChild(p);
+        }
+
+        classesForDay.forEach((c) => {
+          const card = document.createElement("div");
+          card.className = "date-detail-class";
+
+          const head = document.createElement("div");
+          head.className = "date-detail-class-head";
+          const onlineEvent = scheduledEvents.find(
+            (e) => e.type === "online" && e.classId === c.id && e.date === ds,
+          );
+          if (onlineEvent) head.classList.add("marked-online");
+          head.textContent = `${c.time || ""}${c.label ? " — " + c.label : ""}`;
+          attachPress(head, {
+            onTap: () => openClassOptions(c.id, ds, !!onlineEvent),
+          });
+          card.appendChild(head);
+
+          const roster = document.createElement("div");
+          roster.className = "roster";
+          const ids = c.studentIds || [];
+          if (ids.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "no-students";
+            empty.textContent = "No students assigned to this class.";
+            roster.appendChild(empty);
+          } else {
+            ids.forEach((sid) => {
+              const ev = scheduledEvents.find(
+                (e) =>
+                  e.type === "status" &&
+                  e.classId === c.id &&
+                  e.studentId === sid &&
+                  e.date === ds,
+              );
+              const status = ev ? ev.status : "present";
+              const chip = document.createElement("div");
+              chip.className = `student-chip st-${status}`;
+              const dot = document.createElement("span");
+              dot.className = "status-dot";
+              const name = document.createElement("span");
+              name.className = "student-name";
+              name.textContent = studentName(sid);
+              chip.appendChild(dot);
+              chip.appendChild(name);
+              attachPress(chip, {
+                onTap: () => openStatusSheet(c.id, sid, ds),
+              });
+              roster.appendChild(chip);
+            });
+          }
+          card.appendChild(roster);
+          dateDetailClasses.appendChild(card);
+        });
+
+        dateDetailOverlay.classList.add("show");
+      }
+      document
+        .getElementById("dateDetailCancelBtn")
+        .addEventListener("click", () => {
+          dateDetailOverlay.classList.remove("show");
+        });
+      dateDetailOverlay.addEventListener("click", (e) => {
+        if (e.target === dateDetailOverlay)
+          dateDetailOverlay.classList.remove("show");
+      });
+
+      // ---- status sheet (schedule absent/special/present) ----
+      const statusOverlay = document.getElementById("statusOverlay");
+      const statusSheetTitle = document.getElementById("statusSheetTitle");
+
+      function openStatusSheet(classId, studentId, ds) {
+        activeStatusContext = { classId, studentId, ds };
+        statusSheetTitle.textContent = studentName(studentId);
+        statusOverlay.classList.add("show");
+      }
+      document
+        .getElementById("statusCancelBtn")
+        .addEventListener("click", () => {
+          statusOverlay.classList.remove("show");
+        });
+      statusOverlay.addEventListener("click", (e) => {
+        if (e.target === statusOverlay) statusOverlay.classList.remove("show");
+      });
+
+      function setScheduledStatus(status) {
+        const { classId, studentId, ds } = activeStatusContext;
+        let updated = scheduledEvents.filter(
+          (e) =>
+            !(
+              e.type === "status" &&
+              e.classId === classId &&
+              e.studentId === studentId &&
+              e.date === ds
+            ),
+        );
+        if (status !== "present") {
+          updated = [
+            ...updated,
+            {
+              id: newId(),
+              date: ds,
+              day: DAY_KEY_BY_INDEX[activeDate.getDay()],
+              classId,
+              type: "status",
+              studentId,
+              status,
+            },
+          ];
+        }
+        saveScheduledEvents(updated);
+        statusOverlay.classList.remove("show");
+        openDateDetail(activeDate);
+      }
+      document
+        .getElementById("setPresentBtn")
+        .addEventListener("click", () => setScheduledStatus("present"));
+      document
+        .getElementById("setAbsentBtn")
+        .addEventListener("click", () => setScheduledStatus("absent"));
+      document
+        .getElementById("setSpecialBtn")
+        .addEventListener("click", () => setScheduledStatus("special"));
+
+      // ---- class options (online toggle) ----
+      const classOptionsOverlay = document.getElementById(
+        "classOptionsOverlay",
+      );
+      const toggleOnlineBtn = document.getElementById("toggleOnlineBtn");
+
+      function openClassOptions(classId, ds, isOnline) {
+        activeClassOptionsContext = { classId, ds };
+        toggleOnlineBtn.textContent = isOnline
+          ? "Remove Online"
+          : "Mark Online";
+        classOptionsOverlay.classList.add("show");
+      }
+      document
+        .getElementById("classOptionsCancelBtn")
+        .addEventListener("click", () => {
+          classOptionsOverlay.classList.remove("show");
+        });
+      classOptionsOverlay.addEventListener("click", (e) => {
+        if (e.target === classOptionsOverlay)
+          classOptionsOverlay.classList.remove("show");
+      });
+      toggleOnlineBtn.addEventListener("click", () => {
+        const { classId, ds } = activeClassOptionsContext;
+        const existing = scheduledEvents.find(
+          (e) => e.type === "online" && e.classId === classId && e.date === ds,
+        );
+        let updated;
+        if (existing) {
+          updated = scheduledEvents.filter((e) => e.id !== existing.id);
+        } else {
+          updated = [
+            ...scheduledEvents,
+            {
+              id: newId(),
+              date: ds,
+              day: DAY_KEY_BY_INDEX[activeDate.getDay()],
+              classId,
+              type: "online",
+            },
+          ];
+        }
+        saveScheduledEvents(updated);
+        classOptionsOverlay.classList.remove("show");
+        openDateDetail(activeDate);
+      });
+
+      // ---- important note for a scheduled date ----
+      const importantFormOverlay = document.getElementById(
+        "importantFormOverlay",
+      );
+      const importantTextInput = document.getElementById("importantTextInput");
+
+      document
+        .getElementById("addImportantForDateBtn")
+        .addEventListener("click", () => {
+          importantTextInput.value = "";
+          dateDetailOverlay.classList.remove("show");
+          importantFormOverlay.classList.add("show");
+          setTimeout(() => importantTextInput.focus(), 50);
+        });
+      document
+        .getElementById("importantFormCancelBtn")
+        .addEventListener("click", () => {
+          importantFormOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        });
+      importantFormOverlay.addEventListener("click", (e) => {
+        if (e.target === importantFormOverlay) {
+          importantFormOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        }
+      });
+      document
+        .getElementById("saveImportantBtn")
+        .addEventListener("click", () => {
+          const text = importantTextInput.value.trim();
+          if (!text) {
+            toast("Enter a note");
+            return;
+          }
+          const ds = dateStrOf(activeDate);
+          const updated = [
+            ...scheduledEvents,
+            {
+              id: newId(),
+              date: ds,
+              day: DAY_KEY_BY_INDEX[activeDate.getDay()],
+              classId: null,
+              type: "important",
+              text,
+            },
+          ];
+          saveScheduledEvents(updated);
+          importantFormOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        });
+
+      // ---- toast ----
+      let toastTimer = null;
+      function toast(msg) {
+        const el = document.getElementById("toast") || createToastEl();
+        el.textContent = msg;
+        el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), 2500);
+      }
+      function createToastEl() {
+        const el = document.createElement("div");
+        el.id = "toast";
+        document.body.appendChild(el);
+        return el;
+      }
+
+      // ---- unified press handler ----
+      function attachPress(el, { onTap, onLongPress, delay = LONG_PRESS_MS }) {
+        let timer = null;
+        let longPressed = false;
+        let startX = 0;
+        let startY = 0;
+
+        function start(e) {
+          longPressed = false;
+          startX = e.clientX;
+          startY = e.clientY;
+          el.classList.add("pressed");
+          timer = setTimeout(() => {
+            longPressed = true;
+            el.classList.remove("pressed");
+            if (navigator.vibrate) navigator.vibrate(15);
+            onLongPress && onLongPress();
+          }, delay);
+        }
+        function move(e) {
+          if (
+            Math.abs(e.clientX - startX) > MOVE_TOLERANCE ||
+            Math.abs(e.clientY - startY) > MOVE_TOLERANCE
+          ) {
+            clearTimeout(timer);
+            el.classList.remove("pressed");
+          }
+        }
+        function end() {
+          clearTimeout(timer);
+          el.classList.remove("pressed");
+          if (!longPressed && onTap) onTap();
+        }
+        function cancel() {
+          clearTimeout(timer);
+          el.classList.remove("pressed");
+        }
+
+        el.addEventListener("pointerdown", start);
+        el.addEventListener("pointermove", move);
+        el.addEventListener("pointerup", end);
+        el.addEventListener("pointercancel", cancel);
+        el.addEventListener("pointerleave", cancel);
+        el.addEventListener("contextmenu", (e) => e.preventDefault());
+      }
+    </script>
+  </body>
+</html>
