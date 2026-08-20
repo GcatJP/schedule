@@ -743,20 +743,6 @@
             onLongPress && onLongPress();
           }, delay);
         }
-        // ---- double-tap detector (separate from attachPress since
-        // long-press on pay-cells is already used for showPaymentDate) ----
-        function attachDoubleTap(el, callback, delay = 300) {
-          let lastTap = 0;
-          el.addEventListener("pointerup", () => {
-            const now = Date.now();
-            if (now - lastTap < delay) {
-              callback();
-              lastTap = 0;
-            } else {
-              lastTap = now;
-            }
-          });
-        }
         function move(e) {
           if (
             Math.abs(e.clientX - startX) > MOVE_TOLERANCE ||
@@ -782,6 +768,20 @@
         el.addEventListener("pointercancel", cancel);
         el.addEventListener("pointerleave", cancel);
         el.addEventListener("contextmenu", (e) => e.preventDefault());
+      }
+      // ---- double-tap detector (separate from attachPress since
+      // long-press on pay-cells is already used for showPaymentDate) ----
+      function attachDoubleTap(el, callback, delay = 300) {
+        let lastTap = 0;
+        el.addEventListener("pointerup", () => {
+          const now = Date.now();
+          if (now - lastTap < delay) {
+            callback();
+            lastTap = 0;
+          } else {
+            lastTap = now;
+          }
+        });
       }
     </script>
   </body>
