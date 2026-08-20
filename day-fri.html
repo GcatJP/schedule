@@ -719,35 +719,7 @@
           return c;
         });
       }
-      function parseTimeToMinutes(timeStr) {
-        if (!timeStr) return Infinity;
-        const match = timeStr
-          .trim()
-          .match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/);
-        if (!match) return Infinity;
-        let hours = parseInt(match[1], 10);
-        const minutes = parseInt(match[2], 10);
-        const meridiem = match[3] ? match[3].toUpperCase() : null;
-        if (meridiem === "PM" && hours !== 12) hours += 12;
-        if (meridiem === "AM" && hours === 12) hours = 0;
-        return hours * 60 + minutes;
-      }
 
-      function sortClassesByTime(list) {
-        const sortedDayClasses = list
-          .filter((c) => c.day === DAY_KEY && c.type !== "important")
-          .slice()
-          .sort(
-            (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time),
-          );
-        let i = 0;
-        return list.map((c) => {
-          if (c.day === DAY_KEY && c.type !== "important") {
-            return sortedDayClasses[i++];
-          }
-          return c;
-        });
-      }
       function studentName(id) {
         const s = allStudents.find((s) => s.id === id);
         return s ? s.name : "(removed)";
