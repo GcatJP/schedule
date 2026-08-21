@@ -126,6 +126,22 @@
       }
 
       #registerGrid {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .day-section {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .day-heading {
+        margin: 0 0 2px 4px;
+        font-size: 20px;
+        font-weight: normal;
+        opacity: 0.7;
+      }
+      .day-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
         gap: 16px;
@@ -475,23 +491,28 @@
         });
       }
 
+           const DAY_LABELS = {
+        tue: "Tuesday",
+        wed: "Wednesday",
+        thu: "Thursday",
+        fri: "Friday",
+      };
+
       function render() {
         monthLabel.textContent = `${MONTH_NAMES[viewMonth]} ${viewYear}`;
         grid.innerHTML = "";
 
-        const classEntries = [];
-        DAY_ORDER.forEach((dayKey) => {
-          allClasses
-            .filter(
-              (c) =>
-                c.day === dayKey &&
-                c.type !== "important" &&
-                c.timeColor !== "blue",
-            )
-            .forEach((c) => classEntries.push({ ...c, dayKey }));
-        });
+        const dayGroups = DAY_ORDER.map((dayKey) => ({
+          dayKey,
+          classes: allClasses.filter(
+            (c) =>
+              c.day === dayKey &&
+              c.type !== "important" &&
+              c.timeColor !== "blue",
+          ),
+        })).filter((g) => g.classes.length > 0);
 
-        if (classEntries.length === 0) {
+        if (dayGroups.length === 0) {
           grid.innerHTML =
             '<div class="empty-hint">No classes with rosters found.</div>';
           return;
@@ -499,100 +520,115 @@
 
         const todayMidnight = new Date(new Date().toDateString());
 
-        classEntries.forEach((c) => {
-          const dates = datesForDayInMonth(c.dayKey);
+        dayGroups.forEach(({ dayKey, classes }) => {
+          const section = document.createElement("div");
+          section.className = "day-section";
 
-          const block = document.createElement("div");
-          block.className = "class-block";
+          const heading = document.createElement("h2");
+          heading.className = "day-heading";
+          heading.textContent = DAY_LABELS[dayKey];
+          section.appendChild(heading);
 
-          const head = document.createElement("div");
-          head.className = "block-head";
-          head.style.background = DAY_COLORS[c.dayKey];
-          const timeSpan = document.createElement("span");
-          timeSpan.className = "block-time";
-          timeSpan.textContent = c.time || "No time set";
-          head.appendChild(timeSpan);
-          if (c.label) {
-            const labelSpan = document.createElement("span");
-            labelSpan.className = "block-label";
-            labelSpan.textContent = c.label;
-            head.appendChild(labelSpan);
-          }
-          block.appendChild(head);
+          const dayGrid = document.createElement("div");
+          dayGrid.className = "day-grid";
 
-          const table = document.createElement("table");
-          const thead = document.createElement("thead");
-          const headRow = document.createElement("tr");
-          const nameTh = document.createElement("th");
-          nameTh.className = "name-col";
-          nameTh.textContent = "Student";
-          headRow.appendChild(nameTh);
-          dates.forEach((d) => {
-            const th = document.createElement("th");
-            th.textContent = d.getDate();
-            headRow.appendChild(th);
-          });
-          thead.appendChild(headRow);
-          table.appendChild(thead);
+          classes.forEach((c) => {
+            const dates = datesForDayInMonth(dayKey);
 
-          const tbody = document.createElement("tbody");
-          const ids = c.studentIds || [];
-          if (ids.length === 0) {
-            const tr = document.createElement("tr");
-            const td = document.createElement("td");
-            td.colSpan = dates.length + 1;
-            td.className = "no-students";
-            td.textContent = "No students assigned.";
-            tr.appendChild(td);
-            tbody.appendChild(tr);
-          } else {
-            ids.forEach((sid) => {
-              const tr = document.createElement("tr");
-              const nameTd = document.createElement("td");
-              nameTd.className = "name-col";
-              nameTd.textContent = studentName(sid);
-              tr.appendChild(nameTd);
+            const block = document.createElement("div");
+            block.className = "class-block";
 
-              dates.forEach((d) => {
-                const dStr = dateStr(d);
-                const isFuture = d > todayMidnight;
-                const status =
-                  attendanceLog[c.id] &&
-                  attendanceLog[c.id][dStr] &&
-                  attendanceLog[c.id][dStr][sid];
-                const isAbsent = status === "absent";
-                // a future date with nothing set yet stays blank/grey;
-                // a future date that's been scheduled absent still shows red
-                const showBlank = isFuture && !isAbsent;
+            const head = document.createElement("div");
+            head.className = "block-head";
+            head.style.background = DAY_COLORS[dayKey];
+            const timeSpan = document.createElement("span");
+            timeSpan.className = "block-time";
+            timeSpan.textContent = c.time || "No time set";
+            head.appendChild(timeSpan);
+            if (c.label) {
+              const labelSpan = document.createElement("span");
+              labelSpan.className = "block-label";
+              labelSpan.textContent = c.label;
+              head.appendChild(labelSpan);
+            }
+            block.appendChild(head);
 
-                const td = document.createElement("td");
-                const mark = document.createElement("div");
-                mark.className = `mark ${isAbsent ? "absent" : "present"}${
-                  showBlank ? " future" : ""
-                }`;
-                mark.textContent = showBlank ? "" : isAbsent ? "✕" : "✓";
-
-                if (isFuture) {
-                  attachDoubleTap(mark, () => {
-                    toggleAttendance(c.id, c.dayKey, sid, dStr, !isAbsent);
-                  });
-                } else {
-                  mark.addEventListener("click", () => {
-                    toggleAttendance(c.id, c.dayKey, sid, dStr, !isAbsent);
-                  });
-                }
-                td.appendChild(mark);
-                tr.appendChild(td);
-              });
-
-              tbody.appendChild(tr);
+            const table = document.createElement("table");
+            const thead = document.createElement("thead");
+            const headRow = document.createElement("tr");
+            const nameTh = document.createElement("th");
+            nameTh.className = "name-col";
+            nameTh.textContent = "Student";
+            headRow.appendChild(nameTh);
+            dates.forEach((d) => {
+              const th = document.createElement("th");
+              th.textContent = d.getDate();
+              headRow.appendChild(th);
             });
-          }
-          table.appendChild(tbody);
-          block.appendChild(table);
-          grid.appendChild(block);
+            thead.appendChild(headRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+            const ids = c.studentIds || [];
+            if (ids.length === 0) {
+              const tr = document.createElement("tr");
+              const td = document.createElement("td");
+              td.colSpan = dates.length + 1;
+              td.className = "no-students";
+              td.textContent = "No students assigned.";
+              tr.appendChild(td);
+              tbody.appendChild(tr);
+            } else {
+              ids.forEach((sid) => {
+                const tr = document.createElement("tr");
+                const nameTd = document.createElement("td");
+                nameTd.className = "name-col";
+                nameTd.textContent = studentName(sid);
+                tr.appendChild(nameTd);
+
+                dates.forEach((d) => {
+                  const dStr = dateStr(d);
+                  const isFuture = d > todayMidnight;
+                  const status =
+                    attendanceLog[c.id] &&
+                    attendanceLog[c.id][dStr] &&
+                    attendanceLog[c.id][dStr][sid];
+                  const isAbsent = status === "absent";
+                  const showBlank = isFuture && !isAbsent;
+
+                  const td = document.createElement("td");
+                  const mark = document.createElement("div");
+                  mark.className = `mark ${isAbsent ? "absent" : "present"}${
+                    showBlank ? " future" : ""
+                  }`;
+                  mark.textContent = showBlank ? "" : isAbsent ? "✕" : "✓";
+
+                  if (isFuture) {
+                    attachDoubleTap(mark, () => {
+                      toggleAttendance(c.id, dayKey, sid, dStr, !isAbsent);
+                    });
+                  } else {
+                    mark.addEventListener("click", () => {
+                      toggleAttendance(c.id, dayKey, sid, dStr, !isAbsent);
+                    });
+                  }
+                  td.appendChild(mark);
+                  tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+              });
+            }
+            table.appendChild(tbody);
+            block.appendChild(table);
+            dayGrid.appendChild(block);
+          });
+
+          section.appendChild(dayGrid);
+          grid.appendChild(section);
         });
       }
+    </script>
     </script>
   </body>
 </html>
