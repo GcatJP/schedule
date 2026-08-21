@@ -12,7 +12,9 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
     />
-    <title>Wednesday</title>
+    <!-- App icon -->
+    <link rel="apple-touch-icon" href="cat.png" />
+    <title>Tuesday</title>
     <link rel="preconnect" href="https://fonts.googleapis.com/" />
     <link
       href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap"
@@ -636,7 +638,7 @@
           scheduledEvents = (data && data.scheduledEvents) || [];
           statusEl.textContent = "";
           maybeResetForNewDay();
-          applyScheduledEventsForToday();
+          applyScheduledEvents();
 
           const sorted = sortClassesByTime(allClasses);
           if (
@@ -801,16 +803,16 @@
           },
         );
       }
-      function applyScheduledEventsForToday() {
-        const today = todayStr();
-        const dueToday = scheduledEvents.filter(
-          (e) => e.day === DAY_KEY && e.date === today,
+      function applyScheduledEvents() {
+        const occurrenceStr = dateStr(currentOccurrenceDate());
+        const dueEvents = scheduledEvents.filter(
+          (e) => e.day === DAY_KEY && e.date === occurrenceStr,
         );
-        if (dueToday.length === 0) return;
+        if (dueEvents.length === 0) return;
 
         let updatedClasses = [...allClasses];
 
-        dueToday.forEach((e) => {
+        dueEvents.forEach((e) => {
           if (e.type === "status") {
             updatedClasses = updatedClasses.map((c) => {
               if (c.id !== e.classId) return c;
@@ -818,7 +820,7 @@
               statuses[e.studentId] = e.status;
               return { ...c, statuses };
             });
-            logAttendance(e.classId, e.studentId, e.status);
+            logAttendance(e.classId, e.studentId, e.status, occurrenceStr);
           } else if (e.type === "online") {
             updatedClasses = updatedClasses.map((c) =>
               c.id === e.classId ? { ...c, timeColor: "blue" } : c,
@@ -826,18 +828,13 @@
           } else if (e.type === "important") {
             updatedClasses = [
               ...updatedClasses,
-              {
-                id: newId(),
-                day: DAY_KEY,
-                type: "important",
-                text: e.text,
-              },
+              { id: newId(), day: DAY_KEY, type: "important", text: e.text },
             ];
           }
         });
 
         const remainingEvents = scheduledEvents.filter(
-          (e) => !(e.day === DAY_KEY && e.date === today),
+          (e) => !(e.day === DAY_KEY && e.date === occurrenceStr),
         );
 
         allClasses = updatedClasses;
@@ -1305,8 +1302,8 @@
         saveClasses(list);
         closeStatusSheet();
       }
-      function logAttendance(classId, studentId, status) {
-        const dateStr = todayStr();
+      function logAttendance(classId, studentId, status, forDate) {
+        const dateStr = forDate || todayStr();
         const newLog = { ...attendanceLog };
         const classLog = { ...(newLog[classId] || {}) };
         const dayLog = { ...(classLog[dateStr] || {}) };

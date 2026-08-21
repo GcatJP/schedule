@@ -7,11 +7,12 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <meta name="apple-mobile-web-app-title" content="Tuesday" />
+    <meta name="apple-mobile-web-app-title" content="Thursday" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
     />
+
     <title>Thursday</title>
     <link rel="preconnect" href="https://fonts.googleapis.com/" />
     <link
@@ -615,6 +616,7 @@
       let allClasses = []; // full classes array from Firestore (all days)
       let dayResets = {}; // tracks the last reset date per day, e.g. { tue: "2026-08-18" }
       let attendanceLog = {}; // permanent history: { [classId]: { [dateStr]: { [studentId]: "absent" } } }
+      let scheduledEvents = []; // events scheduled ahead of time from the Events page
       let activeClassId = null;
       let activeStudentId = null;
 
@@ -632,8 +634,10 @@
           allClasses = (data && data.classes) || [];
           dayResets = (data && data.dayResets) || {};
           attendanceLog = (data && data.attendanceLog) || {};
+          scheduledEvents = (data && data.scheduledEvents) || [];
           statusEl.textContent = "";
           maybeResetForNewDay();
+          applyScheduledEvents();
 
           const sorted = sortClassesByTime(allClasses);
           if (
@@ -797,7 +801,51 @@
           },
         );
       }
+      function applyScheduledEvents() {
+        const occurrenceStr = dateStr(currentOccurrenceDate());
+        const dueEvents = scheduledEvents.filter(
+          (e) => e.day === DAY_KEY && e.date === occurrenceStr,
+        );
+        if (dueEvents.length === 0) return;
 
+        let updatedClasses = [...allClasses];
+
+        dueEvents.forEach((e) => {
+          if (e.type === "status") {
+            updatedClasses = updatedClasses.map((c) => {
+              if (c.id !== e.classId) return c;
+              const statuses = { ...(c.statuses || {}) };
+              statuses[e.studentId] = e.status;
+              return { ...c, statuses };
+            });
+            logAttendance(e.classId, e.studentId, e.status, occurrenceStr);
+          } else if (e.type === "online") {
+            updatedClasses = updatedClasses.map((c) =>
+              c.id === e.classId ? { ...c, timeColor: "blue" } : c,
+            );
+          } else if (e.type === "important") {
+            updatedClasses = [
+              ...updatedClasses,
+              { id: newId(), day: DAY_KEY, type: "important", text: e.text },
+            ];
+          }
+        });
+
+        const remainingEvents = scheduledEvents.filter(
+          (e) => !(e.day === DAY_KEY && e.date === occurrenceStr),
+        );
+
+        allClasses = updatedClasses;
+        scheduledEvents = remainingEvents;
+        setDoc(
+          docRef,
+          { classes: updatedClasses, scheduledEvents: remainingEvents },
+          { merge: true },
+        ).catch((e) => {
+          console.error(e);
+          statusEl.textContent = "sync error";
+        });
+      }
       // ---- render ----
       function render() {
         const classes = dayClasses();
@@ -1252,8 +1300,8 @@
         saveClasses(list);
         closeStatusSheet();
       }
-      function logAttendance(classId, studentId, status) {
-        const dateStr = todayStr();
+      function logAttendance(classId, studentId, status, forDate) {
+        const dateStr = forDate || todayStr();
         const newLog = { ...attendanceLog };
         const classLog = { ...(newLog[classId] || {}) };
         const dayLog = { ...(classLog[dateStr] || {}) };

@@ -1,13 +1,6 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta
-      name="apple-mobile-web-app-status-bar-style"
-      content="black-translucent"
-    />
-    <meta name="apple-mobile-web-app-title" content="Tuesday" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
@@ -104,12 +97,23 @@
 
       const todayIndex = new Date().getDay();
       const target = dayMap[todayIndex];
+      const isStandalone = window.navigator.standalone === true;
 
-      if (target) {
+      if (isStandalone && target) {
         window.location.replace(target);
       } else {
-        document.getElementById("message").textContent = "No class today.";
-        document.getElementById("fallbackLink").style.display = "inline-flex";
+        const msg = document.getElementById("message");
+        const link = document.getElementById("fallbackLink");
+        if (target) {
+          msg.textContent = "Tap below to open today's class.";
+          link.href = target;
+          link.textContent = "Open Today";
+        } else {
+          msg.textContent = "No class today.";
+          link.href = "menu.html";
+          link.textContent = "Back to Menu";
+        }
+        link.style.display = "inline-flex";
       }
     </script>
   </body>

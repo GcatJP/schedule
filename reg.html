@@ -297,6 +297,7 @@
       let allStudents = [];
       let allClasses = [];
       let attendanceLog = {};
+      let scheduledEvents = [];
 
       let viewYear = new Date().getFullYear();
       let viewMonth = new Date().getMonth(); // 0-indexed
@@ -312,6 +313,7 @@
           allStudents = (data && data.students) || [];
           allClasses = (data && data.classes) || [];
           attendanceLog = (data && data.attendanceLog) || {};
+          scheduledEvents = (data && data.scheduledEvents) || [];
           statusEl.textContent = "";
           render();
         },
@@ -349,7 +351,25 @@
         const day = String(d.getDate()).padStart(2, "0");
         return `${y}-${m}-${day}`;
       }
+      function newId() {
+        return (
+          (crypto.randomUUID && crypto.randomUUID()) ||
+          `${Date.now()}-${Math.random().toString(16).slice(2)}`
+        );
+      }
 
+      function attachDoubleTap(el, callback, delay = 300) {
+        let lastTap = 0;
+        el.addEventListener("click", () => {
+          const now = Date.now();
+          if (now - lastTap < delay) {
+            callback();
+            lastTap = 0;
+          } else {
+            lastTap = now;
+          }
+        });
+      }
       function datesForDayInMonth(dayKey) {
         const targetIdx = DAY_INDEX[dayKey];
         const dates = [];
@@ -367,11 +387,11 @@
       function currentOccurrenceDate(dayKey) {
         const targetIdx = DAY_INDEX[dayKey];
         const now = new Date();
-        const diff = (now.getDay() - targetIdx + 7) % 7;
+        const diff = (targetIdx - now.getDay() + 7) % 7;
         return new Date(
           now.getFullYear(),
           now.getMonth(),
-          now.getDate() - diff,
+          now.getDate() + diff,
         );
       }
 
@@ -398,7 +418,7 @@
         attendanceLog = newLog;
 
         // 2. if this date is the class's current (this-week) occurrence,
-        // also flip the live status shown on that day's page
+        // also flip the live status shown on that day's page right now
         const isCurrentWeek = dStr === dateStr(currentOccurrenceDate(dayKey));
         let newClasses = allClasses;
         if (isCurrentWeek) {
@@ -408,17 +428,49 @@
             if (makeAbsent) {
               statuses[studentId] = "absent";
             } else {
-              delete statuses[studentId]; // back to default present
+              delete statuses[studentId];
             }
             return { ...c, statuses };
           });
           allClasses = newClasses;
         }
 
+        // 3. if this date is further ahead than the next occurrence, queue
+        // a scheduled event so the day page picks it up automatically once
+        // that week's occurrence actually arrives.
+        let newScheduledEvents = scheduledEvents;
+        if (!isCurrentWeek) {
+          const withoutExisting = scheduledEvents.filter(
+            (e) =>
+              !(
+                e.type === "status" &&
+                e.classId === classId &&
+                e.studentId === studentId &&
+                e.date === dStr
+              ),
+          );
+          newScheduledEvents = makeAbsent
+            ? [
+                ...withoutExisting,
+                {
+                  id: newId(),
+                  date: dStr,
+                  day: dayKey,
+                  classId,
+                  type: "status",
+                  studentId,
+                  status: "absent",
+                },
+              ]
+            : withoutExisting;
+          scheduledEvents = newScheduledEvents;
+        }
+
         render();
 
         const payload = { attendanceLog: newLog };
         if (isCurrentWeek) payload.classes = newClasses;
+        if (!isCurrentWeek) payload.scheduledEvents = newScheduledEvents;
         setDoc(docRef, payload, { merge: true }).catch((e) => {
           console.error(e);
           statusEl.textContent = "sync error";
@@ -511,14 +563,22 @@
                   attendanceLog[c.id][dStr] &&
                   attendanceLog[c.id][dStr][sid];
                 const isAbsent = status === "absent";
+                // a future date with nothing set yet stays blank/grey;
+                // a future date that's been scheduled absent still shows red
+                const showBlank = isFuture && !isAbsent;
 
                 const td = document.createElement("td");
                 const mark = document.createElement("div");
                 mark.className = `mark ${isAbsent ? "absent" : "present"}${
-                  isFuture ? " future" : ""
+                  showBlank ? " future" : ""
                 }`;
-                mark.textContent = isFuture ? "" : isAbsent ? "✕" : "✓";
-                if (!isFuture) {
+                mark.textContent = showBlank ? "" : isAbsent ? "✕" : "✓";
+
+                if (isFuture) {
+                  attachDoubleTap(mark, () => {
+                    toggleAttendance(c.id, c.dayKey, sid, dStr, !isAbsent);
+                  });
+                } else {
                   mark.addEventListener("click", () => {
                     toggleAttendance(c.id, c.dayKey, sid, dStr, !isAbsent);
                   });
