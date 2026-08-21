@@ -34,11 +34,14 @@
         margin: 0;
         padding: 0;
         height: 100%;
+        overflow: hidden;
         background: var(--bg);
       }
       body {
-        min-height: 100dvh;
+        height: 100%;
         font-family: "Chalkboard SE", "Comic Sans MS", cursive;
+        display: flex;
+        flex-direction: column;
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
         padding-left: env(safe-area-inset-left);
@@ -49,6 +52,7 @@
         align-items: center;
         gap: 14px;
         padding: 14px 16px;
+        flex-shrink: 0;
       }
       header a.back {
         text-decoration: none;
@@ -61,18 +65,19 @@
         color: var(--ink);
       }
       nav.menu {
+        flex: 1;
+        min-height: 0;
         display: grid;
         grid-template-columns: 1fr;
-        grid-template-rows: repeat(4, 1fr);
+        grid-template-rows: repeat(4, minmax(0, 1fr));
         gap: 14px;
         width: 100%;
-        min-height: calc(100dvh - 70px);
         padding: 0 18px 18px 18px;
       }
       @media (orientation: landscape) and (min-width: 820px) {
         nav.menu {
-          grid-template-columns: repeat(4, 1fr);
-          grid-template-rows: 1fr;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-rows: minmax(0, 1fr);
         }
       }
       a.btn {
