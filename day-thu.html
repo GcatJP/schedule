@@ -29,7 +29,7 @@
         --note-on-banner: #1a1a1a;
         --st-present: var(--ink);
         --st-absent: #e8b100;
-        --st-special: #d1495b;
+        --st-special: red;
       }
       * {
         box-sizing: border-box;
@@ -583,6 +583,7 @@
         doc,
         onSnapshot,
         setDoc,
+        updateDoc,
       } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
       const firebaseConfig = {
@@ -702,13 +703,23 @@
       }
       function parseTimeToMinutes(timeStr) {
         if (!timeStr) return Infinity;
-        const match = timeStr
+        // If a range like "4:00-4:50" or "4:00~4:50" was entered, only the
+        // start time matters for sorting.
+        const startPart = timeStr
           .trim()
-          .match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/);
+          .split(/[-–—~]/)[0]
+          .trim();
+        // Minutes are optional now — "5" is treated as "5:00".
+        const match = startPart.match(
+          /^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?$/,
+        );
         if (!match) return Infinity;
         let hours = parseInt(match[1], 10);
-        const minutes = parseInt(match[2], 10);
-        const meridiem = match[3] ? match[3].toUpperCase() : null;
+        const minutes = match[2] ? parseInt(match[2], 10) : 0;
+        let meridiem = match[3] ? match[3].toUpperCase() : null;
+        // No AM/PM given (e.g. plain "4:00-4:50" or "5") — assume typical
+        // after-school hours (1-7) are PM.
+        if (!meridiem && hours >= 1 && hours <= 7) meridiem = "PM";
         if (meridiem === "PM" && hours !== 12) hours += 12;
         if (meridiem === "AM" && hours === 12) hours = 0;
         return hours * 60 + minutes;
@@ -1321,12 +1332,10 @@
           newLog[classId] = classLog;
         }
         attendanceLog = newLog;
-        setDoc(docRef, { attendanceLog: newLog }, { merge: true }).catch(
-          (e) => {
-            console.error(e);
-            statusEl.textContent = "sync error";
-          },
-        );
+        updateDoc(docRef, { attendanceLog: newLog }).catch((e) => {
+          console.error(e);
+          statusEl.textContent = "sync error";
+        });
       }
       document
         .getElementById("setPresentBtn")

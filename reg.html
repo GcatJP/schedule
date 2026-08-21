@@ -256,6 +256,7 @@
         doc,
         onSnapshot,
         setDoc,
+        updateDoc,
       } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
       const firebaseConfig = {
@@ -471,7 +472,7 @@
         const payload = { attendanceLog: newLog };
         if (isCurrentWeek) payload.classes = newClasses;
         if (!isCurrentWeek) payload.scheduledEvents = newScheduledEvents;
-        setDoc(docRef, payload, { merge: true }).catch((e) => {
+        updateDoc(docRef, payload).catch((e) => {
           console.error(e);
           statusEl.textContent = "sync error";
         });
