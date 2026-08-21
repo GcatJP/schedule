@@ -11,13 +11,13 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <meta name="apple-mobile-web-app-title" content="Adventure Island" />
+    <meta name="apple-mobile-web-app-title" content="Schedule" />
     <meta name="theme-color" content="#ffcc00" />
 
     <!-- App icon -->
     <link rel="apple-touch-icon" href="cat.png" />
 
-    <title>Today</title>
+    <title>Menu</title>
 
     <style>
       :root {
@@ -44,7 +44,10 @@
       }
       nav.menu {
         position: fixed;
-        inset: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
         display: grid;
         grid-template-columns: 1fr;
         grid-template-rows: repeat(5, minmax(0, 1fr));
@@ -76,6 +79,12 @@
           transform 0.1s ease,
           box-shadow 0.1s ease;
       }
+      /* Bigger text on iPhone portrait only — iPad landscape keeps the rule above */
+      @media (orientation: portrait) and (max-width: 600px) {
+        a.btn {
+          font-size: clamp(28px, 9vmin, 44px);
+        }
+      }
       a.btn:active {
         transform: translateY(2px);
         box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
@@ -101,7 +110,7 @@
 
   <body>
     <nav class="menu">
-      <a class="btn btn-today" href="index.html">Today</a>
+      <a class="btn btn-today" href="today.html">Today</a>
       <a class="btn btn-day" href="day.html">Day</a>
       <a class="btn btn-week" href="reg.html">Register</a>
       <a class="btn btn-events" href="events.html">Events</a>
