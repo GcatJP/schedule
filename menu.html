@@ -53,7 +53,7 @@
         background: var(--bg);
       }
       body {
-        height: 100dvh;
+        height: var(--app-height, 100dvh); /* JS overrides this precisely */
         font-family: "Patrick Hand", cursive;
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
@@ -69,7 +69,6 @@
         height: 100%;
         padding: 18px;
       }
-      /* iPad landscape: lay the five buttons out in a single row */
       @media (orientation: landscape) and (min-width: 820px) {
         nav.menu {
           grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -114,6 +113,7 @@
       }
     </style>
   </head>
+
   <body>
     <nav class="menu">
       <a class="btn btn-today" href="index.html">Today</a>
@@ -122,5 +122,18 @@
       <a class="btn btn-events" href="events.html">Events</a>
       <a class="btn btn-payments" href="payments.html">Payments</a>
     </nav>
+    <script>
+      function setAppHeight() {
+        document.documentElement.style.setProperty(
+          "--app-height",
+          window.innerHeight + "px",
+        );
+      }
+      setAppHeight();
+      window.addEventListener("resize", setAppHeight);
+      window.addEventListener("orientationchange", () =>
+        setTimeout(setAppHeight, 100),
+      );
+    </script>
   </body>
 </html>
