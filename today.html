@@ -18,16 +18,10 @@
     <link rel="apple-touch-icon" href="cat.png" />
 
     <title>Today</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com/" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap"
-      rel="stylesheet"
-    />
+
     <style>
       :root {
         --bg: #f7f7f5;
-        --radius: 20px;
-        --today: #2b7a9e;
         --ink: #2a2a26;
       }
       * {
@@ -43,7 +37,7 @@
       }
       body {
         min-height: 100dvh;
-        font-family: "Patrick Hand", cursive;
+        font-family: "Chalkboard SE", "Comic Sans MS", cursive;
         color: var(--ink);
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
@@ -53,38 +47,17 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 18px;
         text-align: center;
-        padding-left: 24px;
-        padding-right: 24px;
       }
       p {
-        font-size: clamp(24px, 5vmin, 34px);
+        font-size: clamp(22px, 5vmin, 30px);
         margin: 0;
-      }
-      a.btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: var(--radius);
-        text-decoration: none;
-        color: #ffffff;
-        background: var(--today);
-        font-size: clamp(22px, 5vmin, 32px);
-        padding: 16px 32px;
-        box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
-      }
-      a.btn:active {
-        transform: translateY(2px);
-        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+        opacity: 0.6;
       }
     </style>
   </head>
   <body>
     <p id="message">Checking the day…</p>
-    <a class="btn" href="menu.html" id="fallbackLink" style="display: none"
-      >Back to Menu</a
-    >
 
     <script>
       // 0 = Sunday, 1 = Monday, 2 = Tuesday, ... 6 = Saturday
@@ -97,23 +70,14 @@
 
       const todayIndex = new Date().getDay();
       const target = dayMap[todayIndex];
-      const isStandalone = window.navigator.standalone === true;
 
-      if (isStandalone && target) {
+      if (target) {
         window.location.replace(target);
       } else {
-        const msg = document.getElementById("message");
-        const link = document.getElementById("fallbackLink");
-        if (target) {
-          msg.textContent = "Tap below to open today's class.";
-          link.href = target;
-          link.textContent = "Open Today";
-        } else {
-          msg.textContent = "No class today.";
-          link.href = "menu.html";
-          link.textContent = "Back to Menu";
-        }
-        link.style.display = "inline-flex";
+        document.getElementById("message").textContent = "No class today.";
+        setTimeout(() => {
+          window.location.replace("index.html");
+        }, 1200);
       }
     </script>
   </body>
