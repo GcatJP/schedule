@@ -581,7 +581,11 @@
         setDoc,
         updateDoc,
       } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-
+      window.addEventListener("pageshow", (e) => {
+        if (e.persisted) {
+          location.reload();
+        }
+      });
       const firebaseConfig = {
         apiKey: "AIzaSyAegz9XGRoiPIJZW_Iw9IrXXMYx_-EDn9E",
         authDomain: "schedule-69a31.firebaseapp.com",
@@ -1303,7 +1307,12 @@
           statuses[activeStudentId] = status;
           return { ...c, statuses };
         });
-        logAttendance(activeClassId, activeStudentId, status);
+        logAttendance(
+          activeClassId,
+          activeStudentId,
+          status,
+          dateStr(currentOccurrenceDate()),
+        );
         saveClasses(list);
         closeStatusSheet();
       }
