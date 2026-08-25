@@ -26,6 +26,9 @@
         --st-absent: #e8b100;
         --st-special: #d1495b;
         --st-online: #2f80ed;
+
+        --reminder-bg: #e4e2dd;
+        --reminder-text: #1a1a1a;
       }
       * {
         box-sizing: border-box;
@@ -89,6 +92,57 @@
         padding: 8px 14px 12px 14px;
         opacity: 0.5;
         font-size: 15px;
+      }
+
+      /* ---- reminders ---- */
+      .reminders-box {
+        background: var(--reminder-bg);
+        color: var(--reminder-text);
+        border-radius: 14px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .reminders-box h2 {
+        margin: 0;
+        font-weight: normal;
+        font-size: 20px;
+        color: var(--reminder-text);
+      }
+      .reminders-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .reminder-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-size: 17px;
+        color: var(--reminder-text);
+      }
+      .reminder-row.pressed {
+        background: rgba(255, 255, 255, 0.35);
+      }
+      .reminders-empty {
+        opacity: 0.6;
+        font-size: 15px;
+        padding: 2px 2px;
+      }
+      .add-reminder-btn {
+        align-self: flex-start;
+        background: none;
+        border: none;
+        color: var(--reminder-text);
+        text-decoration: underline;
+        font-family: inherit;
+        font-size: 16px;
+        padding: 4px 2px;
       }
 
       /* ---- upcoming list ---- */
@@ -210,6 +264,14 @@
         gap: 6px;
         padding: 8px 12px 10px 12px;
       }
+      .class-note {
+        font-size: 15px;
+        padding: 0 14px 10px 14px;
+        opacity: 0.8;
+        border-top: 1px dashed var(--line);
+        margin-top: 2px;
+        padding-top: 8px;
+      }
       .student-chip {
         display: inline-flex;
         align-items: center;
@@ -224,6 +286,16 @@
       }
       .student-chip.pressed {
         background: rgba(0, 0, 0, 0.06);
+      }
+      .student-chip.selectable {
+        cursor: pointer;
+      }
+      .student-chip.selected {
+        background: var(--st-online);
+        border-color: var(--st-online);
+      }
+      .student-chip.selected .student-name {
+        color: #fff;
       }
       .status-dot {
         width: 9px;
@@ -328,20 +400,6 @@
       .sheet button.action:active {
         transform: scale(0.98);
       }
-      .sheet button.action.st-present {
-        color: var(--st-present);
-        border-color: var(--st-present);
-      }
-      .sheet button.action.st-absent {
-        color: #fff;
-        background: var(--st-absent);
-        border-color: var(--st-absent);
-      }
-      .sheet button.action.st-special {
-        color: #fff;
-        background: var(--st-special);
-        border-color: var(--st-special);
-      }
 
       .field {
         display: flex;
@@ -403,9 +461,19 @@
     </header>
 
     <div id="status"></div>
-    <main id="upcomingContainer">
-      <div class="empty-hint" id="emptyHint">
-        No upcoming events. Tap + to schedule one.
+    <main>
+      <div class="reminders-box">
+        <h2>Reminders</h2>
+        <div class="reminders-list" id="remindersList"></div>
+        <button type="button" class="add-reminder-btn" id="addReminderBtn">
+          + Add Reminder
+        </button>
+      </div>
+
+      <div id="upcomingContainer">
+        <div class="empty-hint" id="emptyHint">
+          No upcoming events. Tap + to schedule one.
+        </div>
       </div>
     </main>
 
@@ -431,6 +499,13 @@
         <div id="dateDetailClasses"></div>
         <button
           class="action"
+          id="addOnlineClassForDateBtn"
+          style="color: var(--st-online); border-color: var(--st-online)"
+        >
+          + Online Class
+        </button>
+        <button
+          class="action"
           id="addImportantForDateBtn"
           style="color: var(--st-special); border-color: var(--st-special)"
         >
@@ -440,18 +515,7 @@
       </div>
     </div>
 
-    <!-- status sheet for a scheduled student -->
-    <div class="overlay" id="statusOverlay">
-      <div class="sheet">
-        <h2 id="statusSheetTitle">Student</h2>
-        <button class="action st-present" id="setPresentBtn">Present</button>
-        <button class="action st-absent" id="setAbsentBtn">Absent</button>
-        <button class="action st-special" id="setSpecialBtn">Special</button>
-        <button class="action cancel" id="statusCancelBtn">Cancel</button>
-      </div>
-    </div>
-
-    <!-- class options sheet (online toggle) -->
+    <!-- class options sheet (regular recurring class: online toggle + note) -->
     <div class="overlay" id="classOptionsOverlay">
       <div class="sheet">
         <h2 id="classOptionsTitle">Class</h2>
@@ -462,7 +526,86 @@
         >
           Mark Online
         </button>
+        <button class="action" id="noteOptionBtn">Add Note</button>
         <button class="action cancel" id="classOptionsCancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- online (one-off) class options sheet -->
+    <div class="overlay" id="onlineClassOptionsOverlay">
+      <div class="sheet">
+        <h2>Online Class</h2>
+        <button class="action" id="editOnlineClassBtn">Edit Class</button>
+        <button class="action" id="onlineClassNoteBtn">Add Note</button>
+        <button class="action danger" id="deleteOnlineClassBtn">
+          Delete Class
+        </button>
+        <button class="action cancel" id="onlineClassOptionsCancelBtn">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- online class add/edit form -->
+    <div class="overlay" id="onlineClassFormOverlay">
+      <div class="sheet">
+        <h2 id="onlineClassFormTitle">Add Online Class</h2>
+        <div class="field">
+          <label for="onlineClassTimeInput">Time</label>
+          <input
+            type="text"
+            id="onlineClassTimeInput"
+            placeholder="e.g. 4:30 PM"
+          />
+        </div>
+        <div class="field">
+          <label for="onlineClassLabelInput">Label</label>
+          <input
+            type="text"
+            id="onlineClassLabelInput"
+            placeholder="e.g. Make-up class"
+          />
+        </div>
+        <div class="field">
+          <label>Students</label>
+          <div id="onlineClassStudentList" class="roster"></div>
+        </div>
+        <button
+          class="action"
+          id="saveOnlineClassBtn"
+          style="background: var(--st-online); color: #fff; border: none"
+        >
+          Save
+        </button>
+        <button class="action cancel" id="onlineClassFormCancelBtn">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- note form -->
+    <div class="overlay" id="noteFormOverlay">
+      <div class="sheet">
+        <h2 id="noteFormTitle">Class Note</h2>
+        <div class="field">
+          <label for="noteTextInput">Note</label>
+          <input
+            type="text"
+            id="noteTextInput"
+            placeholder="e.g. Bring workbook, review unit 4"
+          />
+        </div>
+        <button
+          class="action"
+          id="saveNoteBtn"
+          style="background: var(--daycolor); color: #fff; border: none"
+        >
+          Save
+        </button>
+        <button class="action danger" id="deleteNoteBtn" style="display: none">
+          Delete Note
+        </button>
+        <button class="action cancel" id="noteFormCancelBtn">Cancel</button>
       </div>
     </div>
 
@@ -488,6 +631,36 @@
         <button class="action cancel" id="importantFormCancelBtn">
           Cancel
         </button>
+      </div>
+    </div>
+
+    <!-- reminder add/edit form -->
+    <div class="overlay" id="reminderFormOverlay">
+      <div class="sheet">
+        <h2 id="reminderFormTitle">Add Reminder</h2>
+        <div class="field">
+          <label for="reminderTextInput">Reminder</label>
+          <input
+            type="text"
+            id="reminderTextInput"
+            placeholder="e.g. Order new workbooks"
+          />
+        </div>
+        <button
+          class="action"
+          id="saveReminderBtn"
+          style="background: var(--reminder-text); color: #fff; border: none"
+        >
+          Save
+        </button>
+        <button
+          class="action danger"
+          id="deleteReminderBtn"
+          style="display: none"
+        >
+          Delete Reminder
+        </button>
+        <button class="action cancel" id="reminderFormCancelBtn">Cancel</button>
       </div>
     </div>
 
@@ -521,14 +694,20 @@
       let allStudents = [];
       let allClasses = [];
       let scheduledEvents = [];
+      let reminders = [];
       let calendarMonth = new Date();
       let activeDate = null;
-      let activeStatusContext = null; // { classId, studentId, ds }
       let activeClassOptionsContext = null; // { classId, ds }
+      let activeOnlineClassContext = null; // { id, ds }
+      let activeNoteContext = null; // { targetType, targetId, ds }
+      let activeReminderId = null; // null = adding new, else editing existing
+      let editingOnlineClassId = null; // null = adding new, else id being edited
+      let onlineClassSelectedStudents = new Set();
 
       const statusEl = document.getElementById("status");
       const container = document.getElementById("upcomingContainer");
       const emptyHint = document.getElementById("emptyHint");
+      const remindersList = document.getElementById("remindersList");
 
       onSnapshot(
         docRef,
@@ -537,8 +716,10 @@
           allStudents = (data && data.students) || [];
           allClasses = (data && data.classes) || [];
           scheduledEvents = (data && data.scheduledEvents) || [];
+          reminders = (data && data.reminders) || [];
           statusEl.textContent = "";
           renderUpcoming();
+          renderReminders();
         },
         (err) => {
           console.error(err);
@@ -551,6 +732,17 @@
         renderUpcoming();
         try {
           await setDoc(docRef, { scheduledEvents: newEvents }, { merge: true });
+        } catch (e) {
+          console.error(e);
+          statusEl.textContent = "sync error";
+        }
+      }
+
+      async function saveReminders(newReminders) {
+        reminders = newReminders;
+        renderReminders();
+        try {
+          await setDoc(docRef, { reminders: newReminders }, { merge: true });
         } catch (e) {
           console.error(e);
           statusEl.textContent = "sync error";
@@ -593,12 +785,100 @@
         return hours * 60 + minutes;
       }
 
+      function findNote(targetType, targetId, ds) {
+        return scheduledEvents.find(
+          (e) =>
+            e.type === "note" &&
+            e.targetType === targetType &&
+            e.targetId === targetId &&
+            e.date === ds,
+        );
+      }
+
+      // ---- reminders ----
+      function renderReminders() {
+        remindersList.innerHTML = "";
+        if (reminders.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "reminders-empty";
+          empty.textContent = "No reminders yet.";
+          remindersList.appendChild(empty);
+          return;
+        }
+        reminders.forEach((r) => {
+          const row = document.createElement("div");
+          row.className = "reminder-row";
+          const label = document.createElement("span");
+          label.textContent = r.text;
+          row.appendChild(label);
+          attachPress(row, { onTap: () => openReminderForm(r.id) });
+          remindersList.appendChild(row);
+        });
+      }
+
+      const reminderFormOverlay = document.getElementById(
+        "reminderFormOverlay",
+      );
+      const reminderFormTitle = document.getElementById("reminderFormTitle");
+      const reminderTextInput = document.getElementById("reminderTextInput");
+      const deleteReminderBtn = document.getElementById("deleteReminderBtn");
+
+      function openReminderForm(id) {
+        activeReminderId = id;
+        const existing = id ? reminders.find((r) => r.id === id) : null;
+        reminderTextInput.value = existing ? existing.text : "";
+        deleteReminderBtn.style.display = existing ? "" : "none";
+        reminderFormTitle.textContent = existing
+          ? "Edit Reminder"
+          : "Add Reminder";
+        reminderFormOverlay.classList.add("show");
+        setTimeout(() => reminderTextInput.focus(), 50);
+      }
+      document
+        .getElementById("addReminderBtn")
+        .addEventListener("click", () => {
+          openReminderForm(null);
+        });
+      document
+        .getElementById("reminderFormCancelBtn")
+        .addEventListener("click", () => {
+          reminderFormOverlay.classList.remove("show");
+        });
+      reminderFormOverlay.addEventListener("click", (e) => {
+        if (e.target === reminderFormOverlay)
+          reminderFormOverlay.classList.remove("show");
+      });
+      document
+        .getElementById("saveReminderBtn")
+        .addEventListener("click", () => {
+          const text = reminderTextInput.value.trim();
+          if (!text) {
+            toast("Enter a reminder");
+            return;
+          }
+          let updated;
+          if (activeReminderId) {
+            updated = reminders.map((r) =>
+              r.id === activeReminderId ? { ...r, text } : r,
+            );
+          } else {
+            updated = [...reminders, { id: newId(), text }];
+          }
+          saveReminders(updated);
+          reminderFormOverlay.classList.remove("show");
+        });
+      deleteReminderBtn.addEventListener("click", () => {
+        if (!activeReminderId) return;
+        saveReminders(reminders.filter((r) => r.id !== activeReminderId));
+        reminderFormOverlay.classList.remove("show");
+      });
+
       // ---- upcoming list ----
       function renderUpcoming() {
         container.innerHTML = "";
         const todayS = dateStrOf(new Date());
         const future = scheduledEvents
-          .filter((e) => e.date >= todayS)
+          .filter((e) => e.date >= todayS && e.type !== "note")
           .slice()
           .sort((a, b) => a.date.localeCompare(b.date));
         if (future.length === 0) {
@@ -646,6 +926,10 @@
                   : "Class";
                 tag.textContent = "Online";
                 tag.style.color = "var(--st-online)";
+              } else if (e.type === "onlineClass") {
+                label.textContent = `${e.time || ""}${e.label ? " — " + e.label : ""}`;
+                tag.textContent = "Online";
+                tag.style.color = "var(--st-online)";
               } else if (e.type === "important") {
                 label.textContent = e.text;
                 tag.textContent = "Important";
@@ -666,7 +950,17 @@
 
       function confirmDeleteEvent(id) {
         if (confirm("Remove this scheduled item?")) {
-          saveScheduledEvents(scheduledEvents.filter((e) => e.id !== id));
+          saveScheduledEvents(
+            scheduledEvents.filter(
+              (e) =>
+                e.id !== id &&
+                !(
+                  e.type === "note" &&
+                  e.targetType === "onlineClass" &&
+                  e.targetId === id
+                ),
+            ),
+          );
         }
       }
 
@@ -775,8 +1069,15 @@
             (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time),
           );
 
+        const oneOffClasses = scheduledEvents
+          .filter((e) => e.type === "onlineClass" && e.date === ds)
+          .slice()
+          .sort(
+            (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time),
+          );
+
         dateDetailClasses.innerHTML = "";
-        if (classesForDay.length === 0) {
+        if (classesForDay.length === 0 && oneOffClasses.length === 0) {
           const p = document.createElement("div");
           p.className = "no-students";
           p.textContent = "No classes set up for this day yet.";
@@ -826,13 +1127,63 @@
               name.textContent = studentName(sid);
               chip.appendChild(dot);
               chip.appendChild(name);
-              attachPress(chip, {
-                onTap: () => openStatusSheet(c.id, sid, ds),
-              });
               roster.appendChild(chip);
             });
           }
           card.appendChild(roster);
+
+          const note = findNote("class", c.id, ds);
+          if (note) {
+            const noteDiv = document.createElement("div");
+            noteDiv.className = "class-note";
+            noteDiv.textContent = note.text;
+            card.appendChild(noteDiv);
+          }
+
+          dateDetailClasses.appendChild(card);
+        });
+
+        oneOffClasses.forEach((c) => {
+          const card = document.createElement("div");
+          card.className = "date-detail-class";
+
+          const head = document.createElement("div");
+          head.className = "date-detail-class-head marked-online";
+          head.textContent = `${c.time || ""}${c.label ? " — " + c.label : "Online Class"}`;
+          attachPress(head, {
+            onTap: () => openOnlineClassOptions(c.id, ds),
+          });
+          card.appendChild(head);
+
+          const roster = document.createElement("div");
+          roster.className = "roster";
+          const ids = c.studentIds || [];
+          if (ids.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "no-students";
+            empty.textContent = "No students assigned to this class.";
+            roster.appendChild(empty);
+          } else {
+            ids.forEach((sid) => {
+              const chip = document.createElement("div");
+              chip.className = "student-chip";
+              const name = document.createElement("span");
+              name.className = "student-name";
+              name.textContent = studentName(sid);
+              chip.appendChild(name);
+              roster.appendChild(chip);
+            });
+          }
+          card.appendChild(roster);
+
+          const note = findNote("onlineClass", c.id, ds);
+          if (note) {
+            const noteDiv = document.createElement("div");
+            noteDiv.className = "class-note";
+            noteDiv.textContent = note.text;
+            card.appendChild(noteDiv);
+          }
+
           dateDetailClasses.appendChild(card);
         });
 
@@ -848,74 +1199,20 @@
           dateDetailOverlay.classList.remove("show");
       });
 
-      // ---- status sheet (schedule absent/special/present) ----
-      const statusOverlay = document.getElementById("statusOverlay");
-      const statusSheetTitle = document.getElementById("statusSheetTitle");
-
-      function openStatusSheet(classId, studentId, ds) {
-        activeStatusContext = { classId, studentId, ds };
-        statusSheetTitle.textContent = studentName(studentId);
-        statusOverlay.classList.add("show");
-      }
-      document
-        .getElementById("statusCancelBtn")
-        .addEventListener("click", () => {
-          statusOverlay.classList.remove("show");
-        });
-      statusOverlay.addEventListener("click", (e) => {
-        if (e.target === statusOverlay) statusOverlay.classList.remove("show");
-      });
-
-      function setScheduledStatus(status) {
-        const { classId, studentId, ds } = activeStatusContext;
-        let updated = scheduledEvents.filter(
-          (e) =>
-            !(
-              e.type === "status" &&
-              e.classId === classId &&
-              e.studentId === studentId &&
-              e.date === ds
-            ),
-        );
-        if (status !== "present") {
-          updated = [
-            ...updated,
-            {
-              id: newId(),
-              date: ds,
-              day: DAY_KEY_BY_INDEX[activeDate.getDay()],
-              classId,
-              type: "status",
-              studentId,
-              status,
-            },
-          ];
-        }
-        saveScheduledEvents(updated);
-        statusOverlay.classList.remove("show");
-        openDateDetail(activeDate);
-      }
-      document
-        .getElementById("setPresentBtn")
-        .addEventListener("click", () => setScheduledStatus("present"));
-      document
-        .getElementById("setAbsentBtn")
-        .addEventListener("click", () => setScheduledStatus("absent"));
-      document
-        .getElementById("setSpecialBtn")
-        .addEventListener("click", () => setScheduledStatus("special"));
-
-      // ---- class options (online toggle) ----
+      // ---- class options (regular class: online toggle + note) ----
       const classOptionsOverlay = document.getElementById(
         "classOptionsOverlay",
       );
       const toggleOnlineBtn = document.getElementById("toggleOnlineBtn");
+      const noteOptionBtn = document.getElementById("noteOptionBtn");
 
       function openClassOptions(classId, ds, isOnline) {
         activeClassOptionsContext = { classId, ds };
         toggleOnlineBtn.textContent = isOnline
           ? "Remove Online"
           : "Mark Online";
+        const note = findNote("class", classId, ds);
+        noteOptionBtn.textContent = note ? "Edit Note" : "Add Note";
         classOptionsOverlay.classList.add("show");
       }
       document
@@ -950,6 +1247,243 @@
         saveScheduledEvents(updated);
         classOptionsOverlay.classList.remove("show");
         openDateDetail(activeDate);
+      });
+      noteOptionBtn.addEventListener("click", () => {
+        const { classId, ds } = activeClassOptionsContext;
+        classOptionsOverlay.classList.remove("show");
+        openNoteForm("class", classId, ds);
+      });
+
+      // ---- online (one-off) class options ----
+      const onlineClassOptionsOverlay = document.getElementById(
+        "onlineClassOptionsOverlay",
+      );
+      const onlineClassNoteBtn = document.getElementById("onlineClassNoteBtn");
+
+      function openOnlineClassOptions(id, ds) {
+        activeOnlineClassContext = { id, ds };
+        const note = findNote("onlineClass", id, ds);
+        onlineClassNoteBtn.textContent = note ? "Edit Note" : "Add Note";
+        onlineClassOptionsOverlay.classList.add("show");
+      }
+      document
+        .getElementById("onlineClassOptionsCancelBtn")
+        .addEventListener("click", () => {
+          onlineClassOptionsOverlay.classList.remove("show");
+        });
+      onlineClassOptionsOverlay.addEventListener("click", (e) => {
+        if (e.target === onlineClassOptionsOverlay)
+          onlineClassOptionsOverlay.classList.remove("show");
+      });
+      onlineClassNoteBtn.addEventListener("click", () => {
+        const { id, ds } = activeOnlineClassContext;
+        onlineClassOptionsOverlay.classList.remove("show");
+        openNoteForm("onlineClass", id, ds);
+      });
+      document
+        .getElementById("deleteOnlineClassBtn")
+        .addEventListener("click", () => {
+          const { id } = activeOnlineClassContext;
+          if (confirm("Delete this online class?")) {
+            const updated = scheduledEvents.filter(
+              (e) =>
+                e.id !== id &&
+                !(
+                  e.type === "note" &&
+                  e.targetType === "onlineClass" &&
+                  e.targetId === id
+                ),
+            );
+            saveScheduledEvents(updated);
+            onlineClassOptionsOverlay.classList.remove("show");
+            openDateDetail(activeDate);
+          }
+        });
+
+      // ---- online class add/edit form ----
+      const onlineClassFormOverlay = document.getElementById(
+        "onlineClassFormOverlay",
+      );
+      const onlineClassFormTitle = document.getElementById(
+        "onlineClassFormTitle",
+      );
+      const onlineClassTimeInput = document.getElementById(
+        "onlineClassTimeInput",
+      );
+      const onlineClassLabelInput = document.getElementById(
+        "onlineClassLabelInput",
+      );
+      const onlineClassStudentList = document.getElementById(
+        "onlineClassStudentList",
+      );
+
+      function renderOnlineClassStudentList() {
+        onlineClassStudentList.innerHTML = "";
+        allStudents.forEach((s) => {
+          const chip = document.createElement("div");
+          chip.className = "student-chip selectable";
+          if (onlineClassSelectedStudents.has(s.id))
+            chip.classList.add("selected");
+          const name = document.createElement("span");
+          name.className = "student-name";
+          name.textContent = s.name;
+          chip.appendChild(name);
+          chip.addEventListener("click", () => {
+            if (onlineClassSelectedStudents.has(s.id)) {
+              onlineClassSelectedStudents.delete(s.id);
+            } else {
+              onlineClassSelectedStudents.add(s.id);
+            }
+            renderOnlineClassStudentList();
+          });
+          onlineClassStudentList.appendChild(chip);
+        });
+      }
+
+      document
+        .getElementById("addOnlineClassForDateBtn")
+        .addEventListener("click", () => {
+          editingOnlineClassId = null;
+          onlineClassFormTitle.textContent = "Add Online Class";
+          onlineClassTimeInput.value = "";
+          onlineClassLabelInput.value = "";
+          onlineClassSelectedStudents = new Set();
+          renderOnlineClassStudentList();
+          dateDetailOverlay.classList.remove("show");
+          onlineClassFormOverlay.classList.add("show");
+        });
+      document
+        .getElementById("editOnlineClassBtn")
+        .addEventListener("click", () => {
+          const { id } = activeOnlineClassContext;
+          const cls = scheduledEvents.find((e) => e.id === id);
+          if (!cls) return;
+          editingOnlineClassId = id;
+          onlineClassFormTitle.textContent = "Edit Online Class";
+          onlineClassTimeInput.value = cls.time || "";
+          onlineClassLabelInput.value = cls.label || "";
+          onlineClassSelectedStudents = new Set(cls.studentIds || []);
+          renderOnlineClassStudentList();
+          onlineClassOptionsOverlay.classList.remove("show");
+          onlineClassFormOverlay.classList.add("show");
+        });
+      document
+        .getElementById("onlineClassFormCancelBtn")
+        .addEventListener("click", () => {
+          onlineClassFormOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        });
+      onlineClassFormOverlay.addEventListener("click", (e) => {
+        if (e.target === onlineClassFormOverlay) {
+          onlineClassFormOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        }
+      });
+      document
+        .getElementById("saveOnlineClassBtn")
+        .addEventListener("click", () => {
+          const time = onlineClassTimeInput.value.trim();
+          const label = onlineClassLabelInput.value.trim();
+          if (!time && !label) {
+            toast("Enter a time or label");
+            return;
+          }
+          const ds = dateStrOf(activeDate);
+          let updated;
+          if (editingOnlineClassId) {
+            updated = scheduledEvents.map((e) =>
+              e.id === editingOnlineClassId
+                ? {
+                    ...e,
+                    time,
+                    label,
+                    studentIds: Array.from(onlineClassSelectedStudents),
+                  }
+                : e,
+            );
+          } else {
+            updated = [
+              ...scheduledEvents,
+              {
+                id: newId(),
+                date: ds,
+                day: DAY_KEY_BY_INDEX[activeDate.getDay()],
+                type: "onlineClass",
+                time,
+                label,
+                studentIds: Array.from(onlineClassSelectedStudents),
+              },
+            ];
+          }
+          saveScheduledEvents(updated);
+          onlineClassFormOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+          openDateDetail(activeDate);
+        });
+
+      // ---- note form (regular class or online class) ----
+      const noteFormOverlay = document.getElementById("noteFormOverlay");
+      const noteFormTitle = document.getElementById("noteFormTitle");
+      const noteTextInput = document.getElementById("noteTextInput");
+      const deleteNoteBtn = document.getElementById("deleteNoteBtn");
+
+      function openNoteForm(targetType, targetId, ds) {
+        activeNoteContext = { targetType, targetId, ds };
+        const note = findNote(targetType, targetId, ds);
+        noteTextInput.value = note ? note.text : "";
+        deleteNoteBtn.style.display = note ? "" : "none";
+        noteFormTitle.textContent = note ? "Edit Note" : "Add Note";
+        dateDetailOverlay.classList.remove("show");
+        noteFormOverlay.classList.add("show");
+        setTimeout(() => noteTextInput.focus(), 50);
+      }
+      document
+        .getElementById("noteFormCancelBtn")
+        .addEventListener("click", () => {
+          noteFormOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        });
+      noteFormOverlay.addEventListener("click", (e) => {
+        if (e.target === noteFormOverlay) {
+          noteFormOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        }
+      });
+      function saveNote(text) {
+        const { targetType, targetId, ds } = activeNoteContext;
+        let updated = scheduledEvents.filter(
+          (e) =>
+            !(
+              e.type === "note" &&
+              e.targetType === targetType &&
+              e.targetId === targetId &&
+              e.date === ds
+            ),
+        );
+        if (text) {
+          updated = [
+            ...updated,
+            {
+              id: newId(),
+              date: ds,
+              day: DAY_KEY_BY_INDEX[activeDate.getDay()],
+              type: "note",
+              targetType,
+              targetId,
+              text,
+            },
+          ];
+        }
+        saveScheduledEvents(updated);
+        noteFormOverlay.classList.remove("show");
+        dateDetailOverlay.classList.add("show");
+        openDateDetail(activeDate);
+      }
+      document.getElementById("saveNoteBtn").addEventListener("click", () => {
+        saveNote(noteTextInput.value.trim());
+      });
+      deleteNoteBtn.addEventListener("click", () => {
+        saveNote("");
       });
 
       // ---- important note for a scheduled date ----
