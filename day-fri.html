@@ -1209,12 +1209,13 @@
         const c = allClasses.find((c) => c.id === activeClassId);
         const currentIds = new Set((c && c.studentIds) || []);
         rosterCheckList.innerHTML = "";
-        const candidates = dayStudents();
+        const candidates = allStudents
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name));
         if (candidates.length === 0) {
           const p = document.createElement("div");
           p.className = "no-students";
-          p.textContent =
-            "No students on this day yet. Add them in Payments first.";
+          p.textContent = "No students yet. Add them in Payments first.";
           rosterCheckList.appendChild(p);
         }
         candidates.forEach((s) => {
@@ -1228,6 +1229,14 @@
           span.textContent = s.name;
           row.appendChild(cb);
           row.appendChild(span);
+          if (s.day && s.day !== DAY_KEY) {
+            const tag = document.createElement("span");
+            tag.textContent = `(${s.day})`;
+            tag.style.opacity = "0.5";
+            tag.style.fontSize = "14px";
+            tag.style.marginLeft = "auto";
+            row.appendChild(tag);
+          }
           rosterCheckList.appendChild(row);
         });
         classOverlay.classList.remove("show");
