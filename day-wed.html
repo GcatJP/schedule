@@ -1238,6 +1238,24 @@
           }
           rosterCheckList.appendChild(row);
         });
+        const candidateIds = new Set(candidates.map((s) => s.id));
+        [...currentIds]
+          .filter((id) => !candidateIds.has(id))
+          .forEach((id) => {
+            const row = document.createElement("label");
+            row.className = "roster-check-row";
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.value = id;
+            cb.checked = true;
+            const span = document.createElement("span");
+            span.textContent = "(removed)";
+            span.style.opacity = "0.5";
+            span.style.fontStyle = "italic";
+            row.appendChild(cb);
+            row.appendChild(span);
+            rosterCheckList.appendChild(row);
+          });
         classOverlay.classList.remove("show");
         rosterOverlay.classList.add("show");
       });
