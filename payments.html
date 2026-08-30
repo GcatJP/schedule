@@ -170,7 +170,13 @@
       .pay-cell.paid {
         border-color: transparent;
       }
-
+      .pay-cell.paid {
+        border-color: transparent;
+      }
+      .pay-cell.grayed {
+        background: #d5d5d5;
+        border-color: transparent;
+      }
       /* floating add-student button */
       .fab {
         position: fixed;
@@ -545,15 +551,21 @@
             cell.className = "pay-cell";
             const key = `${YEAR}-${monthIdx}`;
             const paidIso = s.payments && s.payments[key];
+            const isGrayed = s.grayed && s.grayed[key];
             if (paidIso) {
               cell.classList.add("paid");
               cell.style.background = DAY_COLORS[s.day] || "#999";
               cell.textContent = "✓";
+            } else if (isGrayed) {
+              cell.classList.add("grayed");
             }
             attachPress(cell, {
               onLongPress: () => showPaymentDate(s.id, key, monthIdx),
             });
-            attachDoubleTap(cell, () => togglePayment(s.id, key));
+            attachMultiTap(cell, {
+              onDouble: () => togglePayment(s.id, key),
+              onTriple: () => toggleGray(s.id, key),
+            });
             td.appendChild(cell);
             tr.appendChild(td);
           });
@@ -562,7 +574,6 @@
         });
       }
 
-      // ---- payment actions ----
       function togglePayment(studentId, key) {
         const student = students.find((s) => s.id === studentId);
         if (!student) return;
@@ -579,6 +590,22 @@
             delete payments[key];
           }
           return { ...s, payments };
+        });
+        saveStudents(list);
+      }
+      function toggleGray(studentId, key) {
+        const student = students.find((s) => s.id === studentId);
+        if (!student) return;
+        const nowGrayed = !(student.grayed && student.grayed[key]);
+        const list = students.map((s) => {
+          if (s.id !== studentId) return s;
+          const grayed = { ...(s.grayed || {}) };
+          if (nowGrayed) {
+            grayed[key] = true;
+          } else {
+            delete grayed[key];
+          }
+          return { ...s, grayed };
         });
         saveStudents(list);
       }
@@ -693,11 +720,17 @@
           return;
         }
         const siblingId = siblingSelect.value || null;
+        const currentMonthIdx = new Date().getMonth();
+        const grayed = {};
+        for (let m = 0; m < currentMonthIdx; m++) {
+          grayed[`${YEAR}-${m}`] = true;
+        }
         const newStudent = {
           id: newId(),
           name,
           day: selectedDay,
           payments: {},
+          grayed,
           siblingId,
         };
         let list = [...students, newStudent];
@@ -772,18 +805,21 @@
         el.addEventListener("pointerleave", cancel);
         el.addEventListener("contextmenu", (e) => e.preventDefault());
       }
-      // ---- double-tap detector (separate from attachPress since
-      // long-press on pay-cells is already used for showPaymentDate) ----
-      function attachDoubleTap(el, callback, delay = 300) {
-        let lastTap = 0;
+      // ---- double/triple-tap detector (separate from attachPress since
+      // long-press on pay-cells is already used for showPaymentDate).
+      // Waits for the tap window to close before firing, so a triple
+      // tap is never misread as a double tap along the way. ----
+      function attachMultiTap(el, { onDouble, onTriple, delay = 300 }) {
+        let tapCount = 0;
+        let timer = null;
         el.addEventListener("pointerup", () => {
-          const now = Date.now();
-          if (now - lastTap < delay) {
-            callback();
-            lastTap = 0;
-          } else {
-            lastTap = now;
-          }
+          tapCount++;
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            if (tapCount === 2 && onDouble) onDouble();
+            else if (tapCount >= 3 && onTriple) onTriple();
+            tapCount = 0;
+          }, delay);
         });
       }
     </script>

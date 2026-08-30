@@ -640,18 +640,6 @@
           maybeResetForNewDay();
           applyScheduledEvents();
 
-          const sorted = sortClassesByTime(allClasses);
-          if (
-            sorted.map((c) => c.id).join(",") !==
-            allClasses.map((c) => c.id).join(",")
-          ) {
-            allClasses = sorted;
-            setDoc(docRef, { classes: sorted }, { merge: true }).catch((e) => {
-              console.error(e);
-              statusEl.textContent = "sync error";
-            });
-          }
-
           render();
         },
         (err) => {
@@ -703,22 +691,16 @@
       }
       function parseTimeToMinutes(timeStr) {
         if (!timeStr) return Infinity;
-        // If a range like "4:00-4:50" or "4:00~4:50" was entered, only the
-        // start time matters for sorting.
-        const startPart = timeStr
+        // Reads the time straight off the front of the string and ignores
+        // anything after it — a name, a room note, any kind of dash — so it
+        // doesn't matter what separator was typed (or whether one was).
+        const match = timeStr
           .trim()
-          .split(/[-–—~]/)[0]
-          .trim();
-        // Minutes are optional now — "5" is treated as "5:00".
-        const match = startPart.match(
-          /^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?$/,
-        );
+          .match(/^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?/);
         if (!match) return Infinity;
         let hours = parseInt(match[1], 10);
         const minutes = match[2] ? parseInt(match[2], 10) : 0;
         let meridiem = match[3] ? match[3].toUpperCase() : null;
-        // No AM/PM given (e.g. plain "4:00-4:50" or "5") — assume typical
-        // after-school hours (1-7) are PM.
         if (!meridiem && hours >= 1 && hours <= 7) meridiem = "PM";
         if (meridiem === "PM" && hours !== 12) hours += 12;
         if (meridiem === "AM" && hours === 12) hours = 0;
