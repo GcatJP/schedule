@@ -497,13 +497,7 @@
       <div class="sheet">
         <h2 id="dateDetailTitle">Date</h2>
         <div id="dateDetailClasses"></div>
-        <button
-          class="action"
-          id="addOnlineClassForDateBtn"
-          style="color: var(--st-online); border-color: var(--st-online)"
-        >
-          + Online Class
-        </button>
+        <button class="action" id="addOnlineClassForDateBtn">+ Class</button>
         <button
           class="action"
           id="addImportantForDateBtn"
@@ -534,9 +528,8 @@
     <!-- online (one-off) class options sheet -->
     <div class="overlay" id="onlineClassOptionsOverlay">
       <div class="sheet">
-        <h2>Online Class</h2>
+        <h2>Class</h2>
         <button class="action" id="editOnlineClassBtn">Edit Class</button>
-        <button class="action" id="onlineClassNoteBtn">Add Note</button>
         <button class="action danger" id="deleteOnlineClassBtn">
           Delete Class
         </button>
@@ -546,34 +539,50 @@
       </div>
     </div>
 
-    <!-- online class add/edit form -->
+    <!-- one-off class add/edit form (mirrors day-fri's Add Class form) -->
     <div class="overlay" id="onlineClassFormOverlay">
       <div class="sheet">
-        <h2 id="onlineClassFormTitle">Add Online Class</h2>
+        <h2 id="onlineClassFormTitle">Add Class</h2>
         <div class="field">
           <label for="onlineClassTimeInput">Time</label>
           <input
             type="text"
             id="onlineClassTimeInput"
-            placeholder="e.g. 4:30 PM"
+            placeholder="e.g. 4:00 PM"
           />
         </div>
         <div class="field">
-          <label for="onlineClassLabelInput">Label</label>
+          <label for="onlineClassLabelInput">Label (optional)</label>
           <input
             type="text"
             id="onlineClassLabelInput"
-            placeholder="e.g. Make-up class"
+            placeholder="e.g. Adventure Island 2"
           />
         </div>
         <div class="field">
-          <label>Students</label>
-          <div id="onlineClassStudentList" class="roster"></div>
+          <label for="onlineClassNoteInput"
+            >Note (optional, shown in red)</label
+          >
+          <input
+            type="text"
+            id="onlineClassNoteInput"
+            placeholder="e.g. Room change this week"
+          />
+        </div>
+        <div class="field">
+          <label style="display: flex; align-items: center; gap: 10px">
+            <input
+              type="checkbox"
+              id="onlineClassOnlineCheckbox"
+              style="width: 20px; height: 20px"
+            />
+            Online
+          </label>
         </div>
         <button
           class="action"
           id="saveOnlineClassBtn"
-          style="background: var(--st-online); color: #fff; border: none"
+          style="background: var(--daycolor); color: #fff; border: none"
         >
           Save
         </button>
@@ -702,7 +711,6 @@
       let activeNoteContext = null; // { targetType, targetId, ds }
       let activeReminderId = null; // null = adding new, else editing existing
       let editingOnlineClassId = null; // null = adding new, else id being edited
-      let onlineClassSelectedStudents = new Set();
 
       const statusEl = document.getElementById("status");
       const container = document.getElementById("upcomingContainer");
@@ -773,13 +781,16 @@
       }
       function parseTimeToMinutes(timeStr) {
         if (!timeStr) return Infinity;
+        // Reads the time straight off the front of the string and ignores
+        // anything after it, matching day-fri's parsing exactly.
         const match = timeStr
           .trim()
-          .match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/);
+          .match(/^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?/);
         if (!match) return Infinity;
         let hours = parseInt(match[1], 10);
-        const minutes = parseInt(match[2], 10);
-        const meridiem = match[3] ? match[3].toUpperCase() : null;
+        const minutes = match[2] ? parseInt(match[2], 10) : 0;
+        let meridiem = match[3] ? match[3].toUpperCase() : null;
+        if (!meridiem && hours >= 1 && hours <= 7) meridiem = "PM";
         if (meridiem === "PM" && hours !== 12) hours += 12;
         if (meridiem === "AM" && hours === 12) hours = 0;
         return hours * 60 + minutes;
@@ -928,8 +939,13 @@
                 tag.style.color = "var(--st-online)";
               } else if (e.type === "onlineClass") {
                 label.textContent = `${e.time || ""}${e.label ? " — " + e.label : ""}`;
-                tag.textContent = "Online";
-                tag.style.color = "var(--st-online)";
+                if (e.timeColor === "blue") {
+                  tag.textContent = "Online";
+                  tag.style.color = "var(--st-online)";
+                } else {
+                  tag.textContent = "Class";
+                  tag.style.color = "var(--daycolor)";
+                }
               } else if (e.type === "important") {
                 label.textContent = e.text;
                 tag.textContent = "Important";
@@ -1064,27 +1080,50 @@
 
         const classesForDay = allClasses
           .filter((c) => c.day === dayKey && c.type !== "important")
-          .slice()
-          .sort(
-            (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time),
-          );
+          .map((c) => ({ ...c, _kind: "recurring" }));
 
         const oneOffClasses = scheduledEvents
           .filter((e) => e.type === "onlineClass" && e.date === ds)
-          .slice()
-          .sort(
-            (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time),
-          );
+          .map((c) => ({ ...c, _kind: "oneOff" }));
+
+        // Automatic slotting: recurring and one-off classes are merged into
+        // a single list and sorted by time, same as day-fri.
+        const mergedClasses = [...classesForDay, ...oneOffClasses].sort(
+          (a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time),
+        );
 
         dateDetailClasses.innerHTML = "";
-        if (classesForDay.length === 0 && oneOffClasses.length === 0) {
+        if (mergedClasses.length === 0) {
           const p = document.createElement("div");
           p.className = "no-students";
           p.textContent = "No classes set up for this day yet.";
           dateDetailClasses.appendChild(p);
         }
 
-        classesForDay.forEach((c) => {
+        mergedClasses.forEach((c) => {
+          if (c._kind === "oneOff") {
+            const card = document.createElement("div");
+            card.className = "date-detail-class";
+
+            const head = document.createElement("div");
+            head.className = "date-detail-class-head";
+            if (c.timeColor === "blue") head.classList.add("marked-online");
+            head.textContent = `${c.time || ""}${c.label ? " — " + c.label : ""}`;
+            attachPress(head, {
+              onTap: () => openOnlineClassOptions(c.id, ds),
+            });
+            card.appendChild(head);
+
+            if (c.note) {
+              const noteDiv = document.createElement("div");
+              noteDiv.className = "class-note";
+              noteDiv.textContent = c.note;
+              card.appendChild(noteDiv);
+            }
+
+            dateDetailClasses.appendChild(card);
+            return;
+          }
           const card = document.createElement("div");
           card.className = "date-detail-class";
 
@@ -1133,50 +1172,6 @@
           card.appendChild(roster);
 
           const note = findNote("class", c.id, ds);
-          if (note) {
-            const noteDiv = document.createElement("div");
-            noteDiv.className = "class-note";
-            noteDiv.textContent = note.text;
-            card.appendChild(noteDiv);
-          }
-
-          dateDetailClasses.appendChild(card);
-        });
-
-        oneOffClasses.forEach((c) => {
-          const card = document.createElement("div");
-          card.className = "date-detail-class";
-
-          const head = document.createElement("div");
-          head.className = "date-detail-class-head marked-online";
-          head.textContent = `${c.time || ""}${c.label ? " — " + c.label : "Online Class"}`;
-          attachPress(head, {
-            onTap: () => openOnlineClassOptions(c.id, ds),
-          });
-          card.appendChild(head);
-
-          const roster = document.createElement("div");
-          roster.className = "roster";
-          const ids = c.studentIds || [];
-          if (ids.length === 0) {
-            const empty = document.createElement("div");
-            empty.className = "no-students";
-            empty.textContent = "No students assigned to this class.";
-            roster.appendChild(empty);
-          } else {
-            ids.forEach((sid) => {
-              const chip = document.createElement("div");
-              chip.className = "student-chip";
-              const name = document.createElement("span");
-              name.className = "student-name";
-              name.textContent = studentName(sid);
-              chip.appendChild(name);
-              roster.appendChild(chip);
-            });
-          }
-          card.appendChild(roster);
-
-          const note = findNote("onlineClass", c.id, ds);
           if (note) {
             const noteDiv = document.createElement("div");
             noteDiv.className = "class-note";
@@ -1258,12 +1253,9 @@
       const onlineClassOptionsOverlay = document.getElementById(
         "onlineClassOptionsOverlay",
       );
-      const onlineClassNoteBtn = document.getElementById("onlineClassNoteBtn");
 
       function openOnlineClassOptions(id, ds) {
         activeOnlineClassContext = { id, ds };
-        const note = findNote("onlineClass", id, ds);
-        onlineClassNoteBtn.textContent = note ? "Edit Note" : "Add Note";
         onlineClassOptionsOverlay.classList.add("show");
       }
       document
@@ -1274,11 +1266,6 @@
       onlineClassOptionsOverlay.addEventListener("click", (e) => {
         if (e.target === onlineClassOptionsOverlay)
           onlineClassOptionsOverlay.classList.remove("show");
-      });
-      onlineClassNoteBtn.addEventListener("click", () => {
-        const { id, ds } = activeOnlineClassContext;
-        onlineClassOptionsOverlay.classList.remove("show");
-        openNoteForm("onlineClass", id, ds);
       });
       document
         .getElementById("deleteOnlineClassBtn")
@@ -1313,44 +1300,25 @@
       const onlineClassLabelInput = document.getElementById(
         "onlineClassLabelInput",
       );
-      const onlineClassStudentList = document.getElementById(
-        "onlineClassStudentList",
+      const onlineClassNoteInput = document.getElementById(
+        "onlineClassNoteInput",
       );
-
-      function renderOnlineClassStudentList() {
-        onlineClassStudentList.innerHTML = "";
-        allStudents.forEach((s) => {
-          const chip = document.createElement("div");
-          chip.className = "student-chip selectable";
-          if (onlineClassSelectedStudents.has(s.id))
-            chip.classList.add("selected");
-          const name = document.createElement("span");
-          name.className = "student-name";
-          name.textContent = s.name;
-          chip.appendChild(name);
-          chip.addEventListener("click", () => {
-            if (onlineClassSelectedStudents.has(s.id)) {
-              onlineClassSelectedStudents.delete(s.id);
-            } else {
-              onlineClassSelectedStudents.add(s.id);
-            }
-            renderOnlineClassStudentList();
-          });
-          onlineClassStudentList.appendChild(chip);
-        });
-      }
+      const onlineClassOnlineCheckbox = document.getElementById(
+        "onlineClassOnlineCheckbox",
+      );
 
       document
         .getElementById("addOnlineClassForDateBtn")
         .addEventListener("click", () => {
           editingOnlineClassId = null;
-          onlineClassFormTitle.textContent = "Add Online Class";
+          onlineClassFormTitle.textContent = "Add Class";
           onlineClassTimeInput.value = "";
           onlineClassLabelInput.value = "";
-          onlineClassSelectedStudents = new Set();
-          renderOnlineClassStudentList();
+          onlineClassNoteInput.value = "";
+          onlineClassOnlineCheckbox.checked = false;
           dateDetailOverlay.classList.remove("show");
           onlineClassFormOverlay.classList.add("show");
+          setTimeout(() => onlineClassTimeInput.focus(), 50);
         });
       document
         .getElementById("editOnlineClassBtn")
@@ -1359,11 +1327,11 @@
           const cls = scheduledEvents.find((e) => e.id === id);
           if (!cls) return;
           editingOnlineClassId = id;
-          onlineClassFormTitle.textContent = "Edit Online Class";
+          onlineClassFormTitle.textContent = "Edit Class";
           onlineClassTimeInput.value = cls.time || "";
           onlineClassLabelInput.value = cls.label || "";
-          onlineClassSelectedStudents = new Set(cls.studentIds || []);
-          renderOnlineClassStudentList();
+          onlineClassNoteInput.value = cls.note || "";
+          onlineClassOnlineCheckbox.checked = cls.timeColor === "blue";
           onlineClassOptionsOverlay.classList.remove("show");
           onlineClassFormOverlay.classList.add("show");
         });
@@ -1384,8 +1352,10 @@
         .addEventListener("click", () => {
           const time = onlineClassTimeInput.value.trim();
           const label = onlineClassLabelInput.value.trim();
-          if (!time && !label) {
-            toast("Enter a time or label");
+          const note = onlineClassNoteInput.value.trim();
+          const timeColor = onlineClassOnlineCheckbox.checked ? "blue" : null;
+          if (!time) {
+            toast("Enter a time");
             return;
           }
           const ds = dateStrOf(activeDate);
@@ -1393,12 +1363,7 @@
           if (editingOnlineClassId) {
             updated = scheduledEvents.map((e) =>
               e.id === editingOnlineClassId
-                ? {
-                    ...e,
-                    time,
-                    label,
-                    studentIds: Array.from(onlineClassSelectedStudents),
-                  }
+                ? { ...e, time, label, note, timeColor }
                 : e,
             );
           } else {
@@ -1411,7 +1376,8 @@
                 type: "onlineClass",
                 time,
                 label,
-                studentIds: Array.from(onlineClassSelectedStudents),
+                note,
+                timeColor,
               },
             ];
           }
