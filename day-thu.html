@@ -846,7 +846,7 @@
         scheduledEvents = remainingEvents;
         setDoc(
           docRef,
-          { classes: updatedClasses, scheduledEvents: remainingEvents },
+          { classes: allClasses, scheduledEvents: remainingEvents },
           { merge: true },
         ).catch((e) => {
           console.error(e);
