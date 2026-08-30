@@ -825,6 +825,20 @@
               ...updatedClasses,
               { id: newId(), day: DAY_KEY, type: "important", text: e.text },
             ];
+          } else if (e.type === "onlineClass") {
+            updatedClasses = [
+              ...updatedClasses,
+              {
+                id: e.id,
+                day: DAY_KEY,
+                time: e.time,
+                label: e.label || "",
+                note: e.note || "",
+                studentIds: [],
+                statuses: {},
+                timeColor: e.timeColor || null,
+              },
+            ];
           }
         });
 
@@ -832,11 +846,11 @@
           (e) => !(e.day === DAY_KEY && e.date === occurrenceStr),
         );
 
-        allClasses = updatedClasses;
+        allClasses = sortClassesByTime(updatedClasses);
         scheduledEvents = remainingEvents;
         setDoc(
           docRef,
-          { classes: updatedClasses, scheduledEvents: remainingEvents },
+          { classes: allClasses, scheduledEvents: remainingEvents },
           { merge: true },
         ).catch((e) => {
           console.error(e);
