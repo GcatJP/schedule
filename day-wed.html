@@ -111,6 +111,9 @@
       .class-head.banner-blue {
         background: #7c5cc4;
       }
+      .class-head.banner-red {
+        background: var(--st-special);
+      }
       .class-head .label {
         font-size: 16px;
         opacity: 0.95;
@@ -484,6 +487,16 @@
             Online
           </label>
         </div>
+        <div class="field">
+          <label style="display: flex; align-items: center; gap: 10px">
+            <input
+              type="checkbox"
+              id="timeSpecialCheckbox"
+              style="width: 20px; height: 20px"
+            />
+            Special
+          </label>
+        </div>
         <button
           class="action"
           id="saveClassFormBtn"
@@ -780,7 +793,7 @@
           .filter((c) => {
             if (c.day !== DAY_KEY) return true;
             if (c.type === "important") return false; // clear important notes
-            if (c.timeColor === "blue") return false; // clear blue banners
+            if (c.timeColor === "blue" || c.timeColor === "red") return false; // clear blue/special banners
             return true;
           })
           .map((c) => {
@@ -872,6 +885,7 @@
           const head = document.createElement("div");
           head.className = "class-head";
           if (c.timeColor === "blue") head.classList.add("banner-blue");
+          if (c.timeColor === "red") head.classList.add("banner-red");
           const timeSpan = document.createElement("span");
           timeSpan.className = "time";
           timeSpan.textContent = c.time || "No time set";
@@ -893,7 +907,7 @@
             noteSpan.textContent = c.note;
             head.appendChild(noteSpan);
           }
-          if (c.timeColor !== "blue") {
+          if (c.timeColor !== "blue" && c.timeColor !== "red") {
             const roster = document.createElement("div");
             roster.className = "roster";
             const ids = c.studentIds || [];
@@ -1007,6 +1021,17 @@
       // ---- fab choice sheet ----
       const fabChoiceOverlay = document.getElementById("fabChoiceOverlay");
       const timeBlueCheckbox = document.getElementById("timeBlueCheckbox");
+      const timeSpecialCheckbox = document.getElementById(
+        "timeSpecialCheckbox",
+      );
+
+      // keep the two checkboxes mutually exclusive
+      timeBlueCheckbox.addEventListener("change", () => {
+        if (timeBlueCheckbox.checked) timeSpecialCheckbox.checked = false;
+      });
+      timeSpecialCheckbox.addEventListener("change", () => {
+        if (timeSpecialCheckbox.checked) timeBlueCheckbox.checked = false;
+      });
 
       document.getElementById("addClassBtn").addEventListener("click", () => {
         fabChoiceOverlay.classList.add("show");
@@ -1041,6 +1066,7 @@
           classNoteInput.value = "";
 
           timeBlueCheckbox.checked = false;
+          timeSpecialCheckbox.checked = false;
           classFormOverlay.classList.add("show");
           setTimeout(() => classTimeInput.focus(), 50);
         });
@@ -1053,6 +1079,7 @@
         classNoteInput.value = c ? c.note || "" : "";
 
         timeBlueCheckbox.checked = c ? c.timeColor === "blue" : false;
+        timeSpecialCheckbox.checked = c ? c.timeColor === "red" : false;
         classOverlay.classList.remove("show");
         classFormOverlay.classList.add("show");
       });
@@ -1072,7 +1099,11 @@
           const label = classLabelInput.value.trim();
           const note = classNoteInput.value.trim();
 
-          const timeColor = timeBlueCheckbox.checked ? "blue" : null;
+          const timeColor = timeBlueCheckbox.checked
+            ? "blue"
+            : timeSpecialCheckbox.checked
+              ? "red"
+              : null;
           if (!time) {
             toast("Enter a time");
             return;
