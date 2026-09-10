@@ -351,7 +351,13 @@
         width: 22px;
         height: 22px;
       }
-
+      .roster-check-row.special {
+        border-bottom-color: var(--st-special);
+      }
+      .roster-check-row.special span {
+        color: var(--st-special);
+        font-weight: bold;
+      }
       #toast {
         position: fixed;
         left: 50%;
@@ -635,6 +641,7 @@
       let scheduledEvents = []; // events scheduled ahead of time from the Events page
       let activeClassId = null;
       let activeStudentId = null;
+      let pendingSpecialIds = new Set(); // students flagged red via double-click in the roster dialog
 
       const statusEl = document.getElementById("status");
       const container = document.getElementById("classesContainer");
@@ -798,9 +805,19 @@
           })
           .map((c) => {
             if (c.day !== DAY_KEY || c.type === "important") return c;
-            return { ...c, statuses: {}, note: "", statusDate: occurrenceStr };
+            const tempIds = new Set(c.tempStudentIds || []);
+            const studentIds = (c.studentIds || []).filter(
+              (sid) => !tempIds.has(sid),
+            );
+            return {
+              ...c,
+              studentIds,
+              statuses: {},
+              note: "",
+              statusDate: occurrenceStr,
+              tempStudentIds: [],
+            };
           });
-
         allClasses = updated;
         dayResets = { ...dayResets, [DAY_KEY]: occurrenceStr };
         setDoc(docRef, { classes: updated, dayResets }, { merge: true }).catch(
@@ -1228,12 +1245,14 @@
         });
 
       // ---- roster edit ----
-      const rosterOverlay = document.getElementById("rosterOverlay");
-      const rosterCheckList = document.getElementById("rosterCheckList");
-
       document.getElementById("editRosterBtn").addEventListener("click", () => {
         const c = allClasses.find((c) => c.id === activeClassId);
         const currentIds = new Set((c && c.studentIds) || []);
+        pendingSpecialIds = new Set(
+          Object.keys((c && c.statuses) || {}).filter(
+            (sid) => c.statuses[sid] === "special" && currentIds.has(sid),
+          ),
+        );
         rosterCheckList.innerHTML = "";
         const candidates = allStudents
           .slice()
@@ -1263,6 +1282,8 @@
             tag.style.marginLeft = "auto";
             row.appendChild(tag);
           }
+          if (pendingSpecialIds.has(s.id)) row.classList.add("special");
+          attachSpecialDblClick(row, cb);
           rosterCheckList.appendChild(row);
         });
         const candidateIds = new Set(candidates.map((s) => s.id));
@@ -1281,11 +1302,28 @@
             span.style.fontStyle = "italic";
             row.appendChild(cb);
             row.appendChild(span);
+            if (pendingSpecialIds.has(id)) row.classList.add("special");
+            attachSpecialDblClick(row, cb);
             rosterCheckList.appendChild(row);
           });
         classOverlay.classList.remove("show");
         rosterOverlay.classList.add("show");
       });
+
+      // double-click a name to flag it red / "special" (guest add, cleared at end of day)
+      function attachSpecialDblClick(row, cb) {
+        row.addEventListener("dblclick", (e) => {
+          e.preventDefault();
+          if (pendingSpecialIds.has(cb.value)) {
+            pendingSpecialIds.delete(cb.value);
+            row.classList.remove("special");
+          } else {
+            pendingSpecialIds.add(cb.value);
+            cb.checked = true;
+            row.classList.add("special");
+          }
+        });
+      }
       document
         .getElementById("rosterCancelBtn")
         .addEventListener("click", () => {
@@ -1304,10 +1342,17 @@
           Object.keys(statuses).forEach((sid) => {
             if (!checked.includes(sid)) delete statuses[sid];
           });
-          return { ...c, studentIds: checked, statuses };
+          const tempStudentIds = checked.filter((sid) =>
+            pendingSpecialIds.has(sid),
+          );
+          tempStudentIds.forEach((sid) => {
+            statuses[sid] = "special";
+          });
+          return { ...c, studentIds: checked, statuses, tempStudentIds };
         });
         saveClasses(list);
         rosterOverlay.classList.remove("show");
+        pendingSpecialIds = new Set();
       });
       document
         .getElementById("addNewStudentBtn")
@@ -1335,6 +1380,7 @@
           span.textContent = student.name;
           row.appendChild(cb);
           row.appendChild(span);
+          attachSpecialDblClick(row, cb);
           rosterCheckList.appendChild(row);
         });
       // ---- status action sheet ----
