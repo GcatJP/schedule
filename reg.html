@@ -569,7 +569,9 @@
             table.appendChild(thead);
 
             const tbody = document.createElement("tbody");
-            const ids = c.studentIds || [];
+            const ids = (c.studentIds || []).filter(
+              (sid) => !(c.tempStudentIds || []).includes(sid),
+            );
             if (ids.length === 0) {
               const tr = document.createElement("tr");
               const td = document.createElement("td");
