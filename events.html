@@ -258,6 +258,9 @@
       .date-detail-class-head.marked-online {
         background: var(--st-online);
       }
+      .date-detail-class-head.marked-special {
+        background: var(--st-special);
+      }
       .date-detail-class .roster {
         display: flex;
         flex-wrap: wrap;
@@ -952,6 +955,9 @@
                 if (e.timeColor === "blue") {
                   tag.textContent = "Online";
                   tag.style.color = "var(--st-online)";
+                } else if (e.timeColor === "red") {
+                  tag.textContent = "Special";
+                  tag.style.color = "var(--st-special)";
                 } else {
                   tag.textContent = "Class";
                   tag.style.color = "var(--daycolor)";
@@ -1118,6 +1124,7 @@
             const head = document.createElement("div");
             head.className = "date-detail-class-head";
             if (c.timeColor === "blue") head.classList.add("marked-online");
+            if (c.timeColor === "red") head.classList.add("marked-special");
             head.textContent = `${c.time || ""}${c.label ? " — " + c.label : ""}`;
             attachPress(head, {
               onTap: () => openOnlineClassOptions(c.id, ds),
