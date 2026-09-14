@@ -579,6 +579,16 @@
             Online
           </label>
         </div>
+        <div class="field">
+          <label style="display: flex; align-items: center; gap: 10px">
+            <input
+              type="checkbox"
+              id="onlineClassSpecialCheckbox"
+              style="width: 20px; height: 20px"
+            />
+            Special
+          </label>
+        </div>
         <button
           class="action"
           id="saveOnlineClassBtn"
@@ -1306,6 +1316,19 @@
       const onlineClassOnlineCheckbox = document.getElementById(
         "onlineClassOnlineCheckbox",
       );
+      const onlineClassSpecialCheckbox = document.getElementById(
+        "onlineClassSpecialCheckbox",
+      );
+
+      // keep the two checkboxes mutually exclusive
+      onlineClassOnlineCheckbox.addEventListener("change", () => {
+        if (onlineClassOnlineCheckbox.checked)
+          onlineClassSpecialCheckbox.checked = false;
+      });
+      onlineClassSpecialCheckbox.addEventListener("change", () => {
+        if (onlineClassSpecialCheckbox.checked)
+          onlineClassOnlineCheckbox.checked = false;
+      });
 
       document
         .getElementById("addOnlineClassForDateBtn")
@@ -1316,6 +1339,7 @@
           onlineClassLabelInput.value = "";
           onlineClassNoteInput.value = "";
           onlineClassOnlineCheckbox.checked = false;
+          onlineClassSpecialCheckbox.checked = false;
           dateDetailOverlay.classList.remove("show");
           onlineClassFormOverlay.classList.add("show");
           setTimeout(() => onlineClassTimeInput.focus(), 50);
@@ -1332,6 +1356,7 @@
           onlineClassLabelInput.value = cls.label || "";
           onlineClassNoteInput.value = cls.note || "";
           onlineClassOnlineCheckbox.checked = cls.timeColor === "blue";
+          onlineClassSpecialCheckbox.checked = cls.timeColor === "red";
           onlineClassOptionsOverlay.classList.remove("show");
           onlineClassFormOverlay.classList.add("show");
         });
@@ -1353,7 +1378,11 @@
           const time = onlineClassTimeInput.value.trim();
           const label = onlineClassLabelInput.value.trim();
           const note = onlineClassNoteInput.value.trim();
-          const timeColor = onlineClassOnlineCheckbox.checked ? "blue" : null;
+          const timeColor = onlineClassOnlineCheckbox.checked
+            ? "blue"
+            : onlineClassSpecialCheckbox.checked
+              ? "red"
+              : null;
           if (!time) {
             toast("Enter a time");
             return;
