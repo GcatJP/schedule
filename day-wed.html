@@ -114,6 +114,9 @@
       .class-head.banner-red {
         background: var(--st-special);
       }
+      .class-head.banner-green {
+        background: #2e9e4f;
+      }
       .class-head .label {
         font-size: 16px;
         opacity: 0.95;
@@ -681,6 +684,12 @@
           statusEl.textContent = "sync error";
         }
       }
+      function toggleBannerGreen(classId) {
+        const updated = allClasses.map((c) =>
+          c.id === classId ? { ...c, bannerGreen: !c.bannerGreen } : c,
+        );
+        saveClasses(updated);
+      }
       async function saveStudents(newStudents) {
         allStudents = newStudents;
         try {
@@ -904,6 +913,7 @@
           head.className = "class-head";
           if (c.timeColor === "blue") head.classList.add("banner-blue");
           if (c.timeColor === "red") head.classList.add("banner-red");
+          if (c.bannerGreen) head.classList.add("banner-green");
           const timeSpan = document.createElement("span");
           timeSpan.className = "time";
           timeSpan.textContent = c.time || "No time set";
@@ -917,6 +927,7 @@
 
           attachPress(head, {
             onTap: () => openClassSheet(c.id),
+            onLongPress: () => toggleBannerGreen(c.id),
           });
           card.appendChild(head);
           if (c.note) {
@@ -1003,6 +1014,7 @@
           ) {
             saveClasses(allClasses.filter((cl) => cl.id !== activeClassId));
           }
+
           closeClassSheet();
         });
 
