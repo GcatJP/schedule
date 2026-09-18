@@ -28,6 +28,7 @@
         --st-present: var(--ink);
         --st-absent: #e8b100;
         --st-special: red;
+        --unpaid: #ff4fa3;
       }
       * {
         box-sizing: border-box;
@@ -176,7 +177,9 @@
       .student-chip.st-special .student-name {
         color: var(--st-special);
       }
-
+      .student-chip.unpaid {
+        border-color: var(--unpaid);
+      }
       .no-students {
         padding: 8px 14px 12px 14px;
         opacity: 0.5;
@@ -749,7 +752,13 @@
         const s = allStudents.find((s) => s.id === id);
         return s ? s.name : "(removed)";
       }
-
+      function isUnpaid(id) {
+        const s = allStudents.find((s) => s.id === id);
+        if (!s) return false;
+        const now = new Date();
+        const key = `${now.getFullYear()}-${now.getMonth()}`;
+        return !(s.payments && s.payments[key]);
+      }
       function todayStr() {
         const d = new Date();
         const y = d.getFullYear();
@@ -940,6 +949,7 @@
                 const status = (c.statuses && c.statuses[sid]) || "present";
                 const chip = document.createElement("div");
                 chip.className = `student-chip st-${status}`;
+                if (isUnpaid(sid)) chip.classList.add("unpaid");
                 const dot = document.createElement("span");
                 dot.className = "status-dot";
                 const name = document.createElement("span");
