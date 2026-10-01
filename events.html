@@ -404,6 +404,17 @@
         transform: scale(0.98);
       }
 
+      .picker-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        padding: 4px 0 8px 0;
+      }
+      .student-chip.added {
+        border-style: dashed;
+        border-color: var(--st-online);
+      }
       .field {
         display: flex;
         flex-direction: column;
@@ -525,7 +536,17 @@
           Mark Online
         </button>
         <button class="action" id="noteOptionBtn">Add Note</button>
+        <button class="action" id="addStudentOptionBtn">+ Add Student</button>
         <button class="action cancel" id="classOptionsCancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- add student (one date only) picker -->
+    <div class="overlay" id="addStudentOverlay">
+      <div class="sheet">
+        <h2 id="addStudentTitle">Add Student</h2>
+        <div class="picker-list" id="addStudentList"></div>
+        <button class="action cancel" id="addStudentCancelBtn">Cancel</button>
       </div>
     </div>
 
@@ -903,7 +924,9 @@
         container.innerHTML = "";
         const todayS = dateStrOf(new Date());
         const future = scheduledEvents
-          .filter((e) => e.date >= todayS && e.type !== "note")
+          .filter(
+            (e) => e.date >= todayS && e.type !== "note" && e.type !== "status",
+          )
           .slice()
           .sort((a, b) => a.date.localeCompare(b.date));
         if (future.length === 0) {
@@ -936,14 +959,11 @@
               const tag = document.createElement("span");
               tag.className = "tag";
 
-              if (e.type === "status") {
+              if (e.type === "tempStudent") {
                 const cls = allClasses.find((c) => c.id === e.classId);
                 label.textContent = `${studentName(e.studentId)}${cls ? " — " + (cls.time || "") : ""}`;
-                tag.textContent = e.status === "absent" ? "Absent" : "Special";
-                tag.style.color =
-                  e.status === "absent"
-                    ? "var(--st-absent)"
-                    : "var(--st-special)";
+                tag.textContent = "Added";
+                tag.style.color = "var(--st-online)";
               } else if (e.type === "online") {
                 const cls = allClasses.find((c) => c.id === e.classId);
                 label.textContent = cls
@@ -1066,7 +1086,9 @@
           const isActionableDow = dow >= 2 && dow <= 5; // Tue-Fri
           const isPast = ds < todayS;
           if (ds === todayS) cell.classList.add("today");
-          const hasEvents = scheduledEvents.some((e) => e.date === ds);
+          const hasEvents = scheduledEvents.some(
+            (e) => e.date === ds && e.type !== "status",
+          );
 
           if (isActionableDow && !isPast) {
             cell.classList.add("actionable");
@@ -1160,7 +1182,14 @@
           const roster = document.createElement("div");
           roster.className = "roster";
           const ids = c.studentIds || [];
-          if (ids.length === 0) {
+          const addedEvents = scheduledEvents.filter(
+            (e) =>
+              e.type === "tempStudent" &&
+              e.classId === c.id &&
+              e.date === ds &&
+              !ids.includes(e.studentId),
+          );
+          if (ids.length === 0 && addedEvents.length === 0) {
             const empty = document.createElement("div");
             empty.className = "no-students";
             empty.textContent = "No students assigned to this class.";
@@ -1184,6 +1213,33 @@
               name.textContent = studentName(sid);
               chip.appendChild(dot);
               chip.appendChild(name);
+              roster.appendChild(chip);
+            });
+            addedEvents.forEach((ev) => {
+              const chip = document.createElement("div");
+              chip.className = "student-chip st-present added";
+              const dot = document.createElement("span");
+              dot.className = "status-dot";
+              const name = document.createElement("span");
+              name.className = "student-name";
+              name.textContent = studentName(ev.studentId);
+              chip.appendChild(dot);
+              chip.appendChild(name);
+              // long-press an added student to remove them from this date
+              attachPress(chip, {
+                onLongPress: () => {
+                  if (
+                    confirm(
+                      `Remove ${studentName(ev.studentId)} from this class?`,
+                    )
+                  ) {
+                    saveScheduledEvents(
+                      scheduledEvents.filter((x) => x.id !== ev.id),
+                    );
+                    openDateDetail(activeDate);
+                  }
+                },
+              });
               roster.appendChild(chip);
             });
           }
@@ -1266,6 +1322,89 @@
         classOptionsOverlay.classList.remove("show");
         openNoteForm("class", classId, ds);
       });
+
+      // ---- add a student to one specific date of a class ----
+      const addStudentOverlay = document.getElementById("addStudentOverlay");
+      const addStudentList = document.getElementById("addStudentList");
+      const addStudentTitle = document.getElementById("addStudentTitle");
+
+      document
+        .getElementById("addStudentOptionBtn")
+        .addEventListener("click", () => {
+          classOptionsOverlay.classList.remove("show");
+          openAddStudentPicker();
+        });
+      document
+        .getElementById("addStudentCancelBtn")
+        .addEventListener("click", () => {
+          addStudentOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        });
+      addStudentOverlay.addEventListener("click", (e) => {
+        if (e.target === addStudentOverlay) {
+          addStudentOverlay.classList.remove("show");
+          dateDetailOverlay.classList.add("show");
+        }
+      });
+
+      function openAddStudentPicker() {
+        const { classId, ds } = activeClassOptionsContext;
+        const cls = allClasses.find((c) => c.id === classId);
+        const alreadyIn = new Set([
+          ...((cls && cls.studentIds) || []),
+          ...scheduledEvents
+            .filter(
+              (e) =>
+                e.type === "tempStudent" &&
+                e.classId === classId &&
+                e.date === ds,
+            )
+            .map((e) => e.studentId),
+        ]);
+        const available = allStudents
+          .filter((st) => !alreadyIn.has(st.id))
+          .slice()
+          .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+        addStudentList.innerHTML = "";
+        if (available.length === 0) {
+          const p = document.createElement("div");
+          p.className = "no-students";
+          p.textContent = "No other students to add.";
+          addStudentList.appendChild(p);
+        }
+        available.forEach((st) => {
+          const chip = document.createElement("div");
+          chip.className = "student-chip selectable st-present";
+          const dot = document.createElement("span");
+          dot.className = "status-dot";
+          const name = document.createElement("span");
+          name.className = "student-name";
+          name.textContent = st.name;
+          chip.appendChild(dot);
+          chip.appendChild(name);
+          attachPress(chip, {
+            onTap: () => {
+              saveScheduledEvents([
+                ...scheduledEvents,
+                {
+                  id: newId(),
+                  date: ds,
+                  day: DAY_KEY_BY_INDEX[activeDate.getDay()],
+                  classId,
+                  type: "tempStudent",
+                  studentId: st.id,
+                },
+              ]);
+              addStudentOverlay.classList.remove("show");
+              openDateDetail(activeDate);
+            },
+          });
+          addStudentList.appendChild(chip);
+        });
+        addStudentTitle.textContent = "Add Student";
+        addStudentOverlay.classList.add("show");
+      }
 
       // ---- online (one-off) class options ----
       const onlineClassOptionsOverlay = document.getElementById(
