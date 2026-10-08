@@ -758,7 +758,12 @@
         if (!s) return false;
         const now = new Date();
         const key = `${now.getFullYear()}-${now.getMonth()}`;
-        return !(s.payments && s.payments[key]);
+        const paid = !!(s.payments && s.payments[key]);
+        // Black border only for CASH students who haven't paid this month.
+        // Bank students always stay gray. Students with no method set yet
+        // keep the old rule (black when unpaid) until you set Bank/Cash.
+        if (s.method === "bank") return false;
+        return !paid;
       }
       function todayStr() {
         const d = new Date();

@@ -293,6 +293,23 @@
         border-color: #000;
       }
 
+      .method-picker {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .method-picker button {
+        padding: 12px 0;
+        border-radius: 12px;
+        border: 2px solid var(--line);
+        font-family: inherit;
+        font-size: 18px;
+        color: #fff;
+      }
+      .method-picker button.selected {
+        border-color: #000;
+      }
+
       /* toast */
       #toast {
         position: fixed;
@@ -362,6 +379,16 @@
       </div>
     </div>
 
+    <!-- payment method sheet (double-click a name) -->
+    <div class="overlay" id="methodOverlay">
+      <div class="sheet">
+        <h2 id="methodSheetTitle">Student</h2>
+        <button class="action" id="setBankBtn">Bank</button>
+        <button class="action" id="setCashBtn">Cash</button>
+        <button class="action cancel" id="methodCancelBtn">Cancel</button>
+      </div>
+    </div>
+
     <!-- add student sheet -->
     <div class="overlay" id="addOverlay">
       <div class="sheet">
@@ -390,6 +417,25 @@
             </button>
             <button type="button" data-day="fri" style="background: var(--fri)">
               Fri
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Pays by</label>
+          <div class="method-picker" id="methodPicker">
+            <button
+              type="button"
+              data-method="bank"
+              style="background: #4a6fa5"
+            >
+              Bank
+            </button>
+            <button
+              type="button"
+              data-method="cash"
+              style="background: #6b8e4e"
+            >
+              Cash
             </button>
           </div>
         </div>
@@ -536,6 +582,9 @@
           attachPress(nameInner, {
             onLongPress: () => openNameSheet(s.id),
           });
+          attachMultiTap(nameInner, {
+            onDouble: () => openMethodSheet(s.id),
+          });
           tr.appendChild(nameTd);
           if (s.siblingId) {
             const linkIcon = document.createElement("span");
@@ -676,16 +725,59 @@
         closeNameSheet();
       });
 
+      // ---- payment method sheet (Bank / Cash) ----
+      const methodOverlay = document.getElementById("methodOverlay");
+      const methodSheetTitle = document.getElementById("methodSheetTitle");
+      const setBankBtn = document.getElementById("setBankBtn");
+      const setCashBtn = document.getElementById("setCashBtn");
+      let methodStudentId = null;
+
+      function openMethodSheet(studentId) {
+        methodStudentId = studentId;
+        const s = students.find((s) => s.id === studentId);
+        const current =
+          s && s.method ? ` (${s.method === "cash" ? "Cash" : "Bank"})` : "";
+        methodSheetTitle.textContent = s ? `${s.name}${current}` : "Student";
+        setBankBtn.style.borderColor = s && s.method === "bank" ? "#000" : "";
+        setCashBtn.style.borderColor = s && s.method === "cash" ? "#000" : "";
+        methodOverlay.classList.add("show");
+      }
+      function closeMethodSheet() {
+        methodOverlay.classList.remove("show");
+        methodStudentId = null;
+      }
+      function setMethod(method) {
+        const list = students.map((s) =>
+          s.id === methodStudentId ? { ...s, method } : s,
+        );
+        saveStudents(list);
+        closeMethodSheet();
+      }
+      setBankBtn.addEventListener("click", () => setMethod("bank"));
+      setCashBtn.addEventListener("click", () => setMethod("cash"));
+      document
+        .getElementById("methodCancelBtn")
+        .addEventListener("click", closeMethodSheet);
+      methodOverlay.addEventListener("click", (e) => {
+        if (e.target === methodOverlay) closeMethodSheet();
+      });
+
       // ---- add student sheet ----
       const addOverlay = document.getElementById("addOverlay");
       const newNameInput = document.getElementById("newNameInput");
       const dayPicker = document.getElementById("dayPicker");
       let selectedDay = null;
+      let selectedMethod = null;
+      const methodPicker = document.getElementById("methodPicker");
       const siblingSelect = document.getElementById("siblingSelect");
 
       document.getElementById("addBtn").addEventListener("click", () => {
         newNameInput.value = "";
         selectedDay = null;
+        selectedMethod = null;
+        [...methodPicker.children].forEach((b) =>
+          b.classList.remove("selected"),
+        );
         [...dayPicker.children].forEach((b) => b.classList.remove("selected"));
         siblingSelect.innerHTML = '<option value="">None</option>';
         students.forEach((s) => {
@@ -710,6 +802,15 @@
         [...dayPicker.children].forEach((b) => b.classList.remove("selected"));
         btn.classList.add("selected");
       });
+      methodPicker.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-method]");
+        if (!btn) return;
+        selectedMethod = btn.dataset.method;
+        [...methodPicker.children].forEach((b) =>
+          b.classList.remove("selected"),
+        );
+        btn.classList.add("selected");
+      });
       document.getElementById("confirmAddBtn").addEventListener("click", () => {
         const name = newNameInput.value.trim();
         if (!name) {
@@ -718,6 +819,10 @@
         }
         if (!selectedDay) {
           toast("Pick a class day");
+          return;
+        }
+        if (!selectedMethod) {
+          toast("Pick Bank or Cash");
           return;
         }
         const siblingId = siblingSelect.value || null;
@@ -730,6 +835,7 @@
           id: newId(),
           name,
           day: selectedDay,
+          method: selectedMethod,
           payments: {},
           grayed,
           siblingId,
