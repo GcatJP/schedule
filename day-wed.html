@@ -709,6 +709,12 @@
         );
       }
 
+      // students who have quit (set on the Payments page) are hidden everywhere else
+      function isQuit(id) {
+        const s = allStudents.find((s) => s.id === id);
+        return !!(s && s.quit);
+      }
+
       function dayStudents() {
         return allStudents.filter((s) => s.day === DAY_KEY);
       }
@@ -953,7 +959,7 @@
           if (c.timeColor !== "blue" && c.timeColor !== "red") {
             const roster = document.createElement("div");
             roster.className = "roster";
-            const ids = c.studentIds || [];
+            const ids = (c.studentIds || []).filter((sid) => !isQuit(sid));
             if (ids.length === 0) {
               const empty = document.createElement("div");
               empty.className = "no-students";
@@ -1283,6 +1289,7 @@
         );
         rosterCheckList.innerHTML = "";
         const candidates = allStudents
+          .filter((s) => !s.quit)
           .slice()
           .sort((a, b) => a.name.localeCompare(b.name));
         if (candidates.length === 0) {
@@ -1316,7 +1323,7 @@
         });
         const candidateIds = new Set(candidates.map((s) => s.id));
         [...currentIds]
-          .filter((id) => !candidateIds.has(id))
+          .filter((id) => !candidateIds.has(id) && !isQuit(id))
           .forEach((id) => {
             const row = document.createElement("label");
             row.className = "roster-check-row";
@@ -1368,7 +1375,7 @@
           if (c.id !== activeClassId) return c;
           const statuses = { ...(c.statuses || {}) };
           Object.keys(statuses).forEach((sid) => {
-            if (!checked.includes(sid)) delete statuses[sid];
+            if (!checked.includes(sid) && !isQuit(sid)) delete statuses[sid];
           });
           const tempStudentIds = checked.filter((sid) =>
             pendingSpecialIds.has(sid),
@@ -1376,7 +1383,14 @@
           tempStudentIds.forEach((sid) => {
             statuses[sid] = "special";
           });
-          return { ...c, studentIds: checked, statuses, tempStudentIds };
+          // keep quit students on the class behind the scenes so "Rejoin" restores them
+          const quitIds = (c.studentIds || []).filter((sid) => isQuit(sid));
+          return {
+            ...c,
+            studentIds: [...checked, ...quitIds],
+            statuses,
+            tempStudentIds,
+          };
         });
         saveClasses(list);
         rosterOverlay.classList.remove("show");

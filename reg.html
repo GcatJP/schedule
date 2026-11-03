@@ -355,6 +355,12 @@
         render();
       });
 
+      // students who have quit (set on the Payments page) are hidden here
+      function isQuit(id) {
+        const s = allStudents.find((s) => s.id === id);
+        return !!(s && s.quit);
+      }
+
       function studentName(id) {
         const s = allStudents.find((s) => s.id === id);
         return s ? s.name : "(removed)";
@@ -571,7 +577,7 @@
 
             const tbody = document.createElement("tbody");
             const ids = (c.studentIds || []).filter(
-              (sid) => !(c.tempStudentIds || []).includes(sid),
+              (sid) => !(c.tempStudentIds || []).includes(sid) && !isQuit(sid),
             );
             if (ids.length === 0) {
               const tr = document.createElement("tr");
