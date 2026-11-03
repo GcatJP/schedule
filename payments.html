@@ -177,6 +177,11 @@
         background: #888888;
         border-color: transparent;
       }
+      /* unpaid future months for a student who has quit */
+      .pay-cell.quit-future {
+        background: #3a3a3a;
+        border-color: transparent;
+      }
       /* floating add-student button */
       .fab {
         position: fixed;
@@ -374,6 +379,7 @@
         <h2 id="nameSheetTitle">Student</h2>
         <button class="action" id="moveUpBtn">Move Up</button>
         <button class="action" id="moveDownBtn">Move Down</button>
+        <button class="action" id="quitBtn">Quit</button>
         <button class="action danger" id="deleteBtn">Delete</button>
         <button class="action cancel" id="nameCancelBtn">Cancel</button>
       </div>
@@ -487,6 +493,7 @@
 
       function sortStudents(list) {
         return [...list].sort((a, b) => {
+          if (!!a.quit !== !!b.quit) return a.quit ? 1 : -1;
           const dayDiff = DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day);
           if (dayDiff !== 0) return dayDiff;
           return a.name.localeCompare(b.name);
@@ -510,6 +517,7 @@
       const YEAR = new Date().getFullYear();
       document.getElementById("yearLabel").textContent = YEAR;
 
+      const QUIT_PAID = "#666666"; // dark gray: dot + paid squares
       const LONG_PRESS_MS = 500;
       const MOVE_TOLERANCE = 10;
 
@@ -573,7 +581,9 @@
           nameInner.className = "name-inner";
           const dot = document.createElement("span");
           dot.className = "dot";
-          dot.style.background = DAY_COLORS[s.day] || "#ccc";
+          dot.style.background = s.quit
+            ? QUIT_PAID
+            : DAY_COLORS[s.day] || "#ccc";
           const nameText = document.createElement("span");
           nameText.textContent = s.name;
           nameInner.appendChild(dot);
@@ -604,10 +614,15 @@
             const isGrayed = s.grayed && s.grayed[key];
             if (paidIso) {
               cell.classList.add("paid");
-              cell.style.background = DAY_COLORS[s.day] || "#999";
+              cell.style.background = s.quit
+                ? QUIT_PAID
+                : DAY_COLORS[s.day] || "#999";
               cell.textContent = "✓";
             } else if (isGrayed) {
               cell.classList.add("grayed");
+            }
+            if (s.quit && !paidIso && monthIdx > new Date().getMonth()) {
+              cell.classList.add("quit-future");
             }
             attachPress(cell, {
               onLongPress: () => showPaymentDate(s.id, key, monthIdx),
@@ -680,6 +695,8 @@
         activeStudentId = studentId;
         const s = students.find((s) => s.id === studentId);
         nameSheetTitle.textContent = s ? s.name : "Student";
+        document.getElementById("quitBtn").textContent =
+          s && s.quit ? "Rejoin" : "Quit";
         nameOverlay.classList.add("show");
       }
       function closeNameSheet() {
@@ -708,6 +725,23 @@
           const list = [...students];
           [list[i + 1], list[i]] = [list[i], list[i + 1]];
           saveStudents(list);
+        }
+        closeNameSheet();
+      });
+      document.getElementById("quitBtn").addEventListener("click", () => {
+        const s = students.find((s) => s.id === activeStudentId);
+        if (s) {
+          if (s.quit) {
+            // rejoin: restore colours and put back in normal sorted position
+            const list = students.map((st) =>
+              st.id === s.id ? { ...st, quit: false } : st,
+            );
+            saveStudents(sortStudents(list));
+          } else {
+            // quit: move to the very bottom of the list
+            const rest = students.filter((st) => st.id !== s.id);
+            saveStudents([...rest, { ...s, quit: true }]);
+          }
         }
         closeNameSheet();
       });
