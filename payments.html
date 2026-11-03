@@ -621,7 +621,11 @@
             } else if (isGrayed) {
               cell.classList.add("grayed");
             }
-            if (s.quit && !paidIso && monthIdx > new Date().getMonth()) {
+            if (
+              s.quit &&
+              !paidIso &&
+              (isGrayed || monthIdx > new Date().getMonth())
+            ) {
               cell.classList.add("quit-future");
             }
             attachPress(cell, {
